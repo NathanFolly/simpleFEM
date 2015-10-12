@@ -19,15 +19,6 @@ real, allocatable :: b(:), u(:)
 integer, allocatable :: ipiv(:)
 real :: blubb(2,2)
 
-
-! blubb(1,1)=11
-! blubb(1,2)=12
-! blubb(2,1)=21
-! blubb(2,2)=22
-
-
-
-! print *,blubb
 print *,'Number of elements?'
 read *,nelem
 
@@ -53,10 +44,6 @@ b(i)=((F/crossec)/E +1)*initelemL
 end do
 
 
-print *, 'This is the matrix A'
-do i=1,nnodes
-	print *, A(i,:)
-end do
 
 !calling the LAPACK subroutine:
 
