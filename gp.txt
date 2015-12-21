@@ -1,0 +1,19 @@
+ set term png
+ f(x) = -1./   174.999985     *   10.0000000     *(x**4/24.-1./6*x**3+1./4*x**2)
+ g(x) = -1./   174.999985     *   10.0000000     *(x**2/2.-x+1./2.)
+ set output "bendinglines.png"
+ set title "Comparing bending lines from the FEM solver and the analytical solution."
+ plot [x=0:   1.00000000     ] f(x) title "analytical", "bendingline.dat" title "FEM"
+ set output "bendingangles.png"
+ set key right bottom
+ set title "Comparing bending angles from the FEM solver and the analytical solution."
+ plot [x=0:   1.00000000     ] g(x) title "analytical", "bendingangle.dat" title "FEM"
+ g(x) = -1./   174.999985     *   10.0000000     *(x**2/2.-x/2.)
+ f(x) = -1./   174.999985     *   10.0000000     *(x**4/24.-x**3/12+x/24)
+ set output "bendinglines_fixedends.png"
+ set title "Comparing bending lines from the FEM solver and the analytical solution."
+ plot [x=0:   1.00000000     ] f(x) title "analytical", "bendinglineB.dat" title "FEM"
+ set output "bendingangles_fixedends.png"
+ set key right bottom
+ set title "Comparing bending angles from the FEM solver and the analytical solution."
+ plot [x=0:   1.00000000     ] g(x) title "analytical", "bendingangleB.dat" title "FEM"
