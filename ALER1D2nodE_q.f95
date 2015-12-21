@@ -99,7 +99,7 @@ do i=1,size(element)
 	D(i+1,:)=(element(i)%node(3)%x-element(i)%node(1)%x)*1./2.
 end do
 D(:,1)=0
-!D(:,nnodes)=0
+!oD(:,nnodes)=0
 
 b=matmul(D,q)
 b(1)=-qq/2./(E*FTHM)
