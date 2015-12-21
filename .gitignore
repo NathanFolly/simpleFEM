@@ -2,5 +2,6 @@ fort.*
 *.o
 simpleFEM
 *test*
+makefile
 a.out.dSYM/Contents/Info.plist
 a.out.dSYM/Contents/Resources/DWARF/a.out
