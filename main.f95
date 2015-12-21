@@ -38,10 +38,35 @@ end module mytypes
 
 program main
 
-.#include '/opt/local/lib/petsc/include/petsc.h90'
+
 
 use mytypes
 implicit none
+
+!Tryout for petsc:
+#include </home/hartig/petsc/include/petsc/finclude/petscsys.h>
+#include </home/hartig/petsc/include/petsc/finclude/petscvec.h>
+#include </home/hartig/petsc/include/petsc/finclude/petscmat.h>
+#include </home/hartig/petsc/include/petsc/finclude/petscksp.h>
+#include </home/hartig/petsc/include/petsc/finclude/petscpc.h>
+!!!!!!!!!
+
+!!!!!!!!\
+! These Variables are created for use with PETSc
+
+Vec 			xpet,bpet,upet
+Mat 			Apet
+KSP 			ksppet
+PC 				pcpet
+PetscReal 		normpet, tolpet
+PetscErrorCode 	ierrpet
+PetscInt 		ipet, npet, colpet(3), itspet, i1pet, i2pet, i3pet
+PetscBool		flgpet
+PetscMPIInt		sizepet, rankpet
+PetscScalar		nonepet, onepet, valuepet(3)
+
+!!!!!!!
+
 
 type(elementtype), allocatable, target :: mesh(:) ! essentially the mesh is just an array of elements
 type(elementtype), pointer :: meshpointer(:)
@@ -132,6 +157,126 @@ write(11,*)  Kglobal(50,:)
 !call generateesm(kele,testelement,properties)
 
 
+!!!!!!!!!!!!!!!!!!!!!!  PETSC-PART !!!!!!!!!!!!!!!!!!!!!!!!
 
 
+! Initialization
+
+call PetscInitialize(PETSC_NULL_CHARACTER,ierrpet)
+call MPI_Comm_size(PETSC_COMM_WORLD, sizepet, ierrpet)
+if (sizepet .ne. 1) then
+	call MPI_Comm_rank(PETSC_COMM_WORLD,rankpet, ierrpet)
+	if (rankpet .eq. 0) then 
+		write(6,*) 'This is a uniprocessor example only!'
+	endif
+	SETERRQ(PETSC_COMM_WORLD, 1, ' ', ierrpet)
+endif
+nonepet = -1.0
+onepet	= 1.0
+npet 	= 10
+i1pet 	= 1
+i2pet 	= 2
+i3pet	= 3
+call PetScOptionsGetInt(PETSC_NULL_CHARACTER, '-n',npet, flgpet, ierrpet)
+
+! Creating the matrix
+
+call MatCreate(PETSC_COMM_WORLD, Apet, ierrpet)
+call MatSetSizes(Apet, PETSC_DECIDE, PETSC_DECIDE, npet, npet, ierrpet)
+call MatSetFromOptions(Apet, ierrpet)
+call MatSetUp(Apet,ierrpet)
+
+! Assembling the matrix
+
+valuepet(1) = -1.0
+valuepet(2) = 2.0
+valuepet(3) = -1.0
+
+do 50 ipet=1,npet-2
+	colpet(1) = ipet-1
+	colpet(2) = ipet
+	colpet(3) = ipet+1
+	call MatSetValues(Apet,i1pet,ipet,i3pet,colpet,valuepet,INSERT_VALUES,ierrpet)
+50	continue
+	i= npet -1
+	colpet(1) = npet -2
+	colpet(2) = npet -1	
+	call MatSetValues(Apet,i1pet,ipet,i3pet,colpet,valuepet,INSERT_VALUES,ierrpet)
+	ipet = 0
+	colpet(1) = 0
+	colpet(2) = 1
+	valuepet(1)	= 2.0
+	valuepet(2)	= -1.0
+	call MatSetValues(Apet,i1pet,ipet,i3pet,colpet,valuepet,INSERT_VALUES,ierrpet)
+	call MatAssemblyBegin(Apet, MAT_FINAL_ASSEMBLY, ierrpet)
+	call MatAssemblyEnd(Apet, MAT_FINAL_ASSEMBLY, ierrpet)
+
+
+! creating the vectors : one is created from scratch and then duplicated
+
+call VecCreate(PETSC_COMM_WORLD, xpet, ierrpet)
+call VecSetSizes(xpet, PETSC_DECIDE, npet, ierrpet)
+call VecSetFromOptions(xpet, ierrpet)
+call VecDuplicate(xpet, bpet, ierrpet)
+call VecDuplicate(xpet, upet, ierrpet)
+
+! Setting the exact solution. then compute the right hand side vector
+
+call VecSet(upet, onepet, ierrpet)
+call MatMult(Apet, upet, bpet, ierrpet)
+
+!!!!!!! creating the linear solver and settin various options
+call KSPCreate(PETSC_COMM_WORLD,ksppet, ierrpet)
+
+! Setting the operators.
+!  HERE, the Matrix that defines the linear system also serves as preconditioning matrix 
+call KSPSetOperators(ksppet,Apet,Apet,ierrpet)
+
+!setting linear solver defaults for this problem (optional)
+! Those options could also be configured at runtime
+
+call KSPGetPC(ksppet, pcpet, ierrpet)
+call PCSetType(pcpet, PCJACOBI, ierrpet)
+tolpet = 1.d-7
+call KSPSetTolerances(ksppet,tolpet,PETSC_DEFAULT_REAL, PETSC_DEFAULT_REAL, PETSC_DEFAULT_INTEGER, ierrpet)
+
+! setting the runtime options
+
+call KSPSetFromOptions(ksppet, ierrpet)
+
+!!!!!!!!!!!!! solving the linear system
+call KSPSolve(ksppet, bpet, xpet, ierrpet)
+
+! viewing the solver info
+
+call KSPView(ksppet, PETSC_VIEWER_STDOUT_WORLD, ierrpet)
+
+!!!! check solution and cleanup
+
+call VecAXPY(xpet,nonepet, upet, ierrpet)
+call VecNorm(xpet,NORM_2, normpet, ierrpet)
+call KSPGetIterationNumber(ksppet, itspet, ierrpet)
+if (normpet .gt. 1.e-12) then
+	write(6,100) normpet, itspet
+else
+	write(6,200) itspet
+endif
+
+100 format('Norm of error = ', e11.4,'Iterations = ', i5)
+200 format('Norm of error < 1.e-12, Iterations 0 ', i5)
+
+! Freeing workspace:
+
+call VecDestroy(xpet, ierrpet)
+call VecDestroy(upet, ierrpet)
+call VecDestroy(bpet, ierrpet)
+call MatDestroy(Apet, ierrpet)
+call KSPDestroy(ksppet, ierrpet)
+call PetscFinalize(ierrpet)
+
+!!!!!!!!!!!!!!!!!!! End of the petsc part
+
+
+
+! 
 end program main
