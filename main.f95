@@ -1,5 +1,4 @@
 
-
 ! This is the main Program of simpleFEM written by Maximilian Hartig
 
 module mytypes
@@ -132,17 +131,20 @@ u=0
 b=0
 
 
-do i=quadstart, quadend 
-	call generateesm(kele, mesh(i), properties)
-	do j=1,4 ! ideally vary leftmost index of the bigger Matrix more quickly because fortran is column-major -> that's quicker
-		iglobal = 4*(i-quadstart)+j
-		do k=1,4
-			jglobal=2*mesh(i)%node(k)%num-1 ! for the x-displacement of node j
-			Kglobal(iglobal,jglobal)= Kglobal(iglobal,jglobal)+kele(j,2*k-1)
-			jglobal=2*mesh(i)%node(k)%num ! for the y- displacement of node j
-			Kglobal(iglobal,jglobal)=Kglobal(iglobal,jglobal)+ kele(j,2*k)
-		end do
-	end do
+do k=quadstart, quadend !for all the quad elements do
+	call generateesm(kele, mesh(k), properties) 
+	do i=1,4
+		ii = 
+
+	! do j=1,4 ! ideally vary leftmost index of the bigger Matrix more quickly because fortran is column-major -> that's quicker
+	! 	iglobal = 4*(i-quadstart)+j
+	! 	do k=1,4
+	! 		jglobal=2*mesh(i)%node(k)%num-1 ! for the x-displacement of node j
+	! 		Kglobal(iglobal,jglobal)= Kglobal(iglobal,jglobal)+kele(j,2*k-1)
+	! 		jglobal=2*mesh(i)%node(k)%num ! for the y- displacement of node j
+	! 		Kglobal(iglobal,jglobal)=Kglobal(iglobal,jglobal)+ kele(j,2*k)
+	! 	end do
+	! end do
 end do
 
 open(11, file='Kprint')
@@ -277,6 +279,31 @@ call PetscFinalize(ierrpet)
 
 !!!!!!!!!!!!!!!!!!! End of the petsc part
 
+
+
+
+
+contains
+
+function globaldof(element, localdof) ! returns the global degree of freedom in depenande of the local degree of freedom
+	type(elementtype), intent(in) :: element
+	integer, intent(in) :: localdof
+	integer ,intent(out) :: globaldof
+	integer:: localnodenum, nodedof, globalnodenum
+
+	if mod(localdof,2) then 
+		localnodenum= localdof/2
+		nodedof=2
+	else
+		localnodenum=(localdof+1)/2
+		nodedof=1
+	endif
+
+	globalnodenum=element%node(localnodenum)%num
+
+	globaldof=2*globalnodenum-(2-nodedof)
+
+end function globaldof
 
 
 ! 
