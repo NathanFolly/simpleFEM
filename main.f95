@@ -1,4 +1,6 @@
 
+!just added a little comment
+
 ! This is the main Program of simpleFEM written by Maximilian Hartig
 
 module mytypes
