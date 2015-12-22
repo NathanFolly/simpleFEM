@@ -96,214 +96,216 @@ end interface
 
 !!!!!!!!!!!! Can be deleted !!!!!!!!!!!!!
 !in order to test the program let's create some nodes that make sense
-! type(elementtype)::testelement
+ type(elementtype)::testelement
  type(propertytype)::properties
 
-! allocate(testelement%node(4))
-! testelement%node(1)%x=0
-! testelement%node(1)%y=0
-! testelement%node(2)%x=0
-! testelement%node(2)%y=1
-! testelement%node(3)%x=1
-! testelement%node(3)%y=1
-! testelement%node(4)%x=1
-! testelement%node(4)%y=0
+ allocate(testelement%node(4))
+ testelement%node(1)%x=0
+ testelement%node(1)%y=0
+ testelement%node(2)%x=0
+ testelement%node(2)%y=1
+ testelement%node(3)%x=1
+ testelement%node(3)%y=1
+ testelement%node(4)%x=1
+ testelement%node(4)%y=0
 
  properties%E = 2E11
  properties%nu = 0.3
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+call generateesm(kele,testelement,properties)
 
-! We read in the mesh created by the external program gmsh
-meshpointer=>mesh(:)
+! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-
-
-call readmesh(mesh, meshfile, quadstart, quadend, quadcounter, nnodes)
-! we assemble the Matrix
-! not using any assembly strategy. just adding up everything
-print *,'done reading mesh'
-
-allocate(Kglobal(4*quadcounter,2*nnodes))
-allocate(u(2*nnodes))
-allocate(b(4*quadcounter))
-u=0
-b=0
-
-
-do k=quadstart, quadend !for all the quad elements do
-	call generateesm(kele, mesh(k), properties) 
-	do i=1,4
-		ii = 
-
-	! do j=1,4 ! ideally vary leftmost index of the bigger Matrix more quickly because fortran is column-major -> that's quicker
-	! 	iglobal = 4*(i-quadstart)+j
-	! 	do k=1,4
-	! 		jglobal=2*mesh(i)%node(k)%num-1 ! for the x-displacement of node j
-	! 		Kglobal(iglobal,jglobal)= Kglobal(iglobal,jglobal)+kele(j,2*k-1)
-	! 		jglobal=2*mesh(i)%node(k)%num ! for the y- displacement of node j
-	! 		Kglobal(iglobal,jglobal)=Kglobal(iglobal,jglobal)+ kele(j,2*k)
-	! 	end do
-	! end do
-end do
-
-open(11, file='Kprint')
-write(11,*)  Kglobal(50,:)
-
-! now, in theory, all we have to do is to solve the system:
+! ! We read in the mesh created by the external program gmsh
+! meshpointer=>mesh(:)
 
 
 
+! call readmesh(mesh, meshfile, quadstart, quadend, quadcounter, nnodes)
+! ! we assemble the Matrix
+! ! not using any assembly strategy. just adding up everything
+! print *,'done reading mesh'
+
+! allocate(Kglobal(4*quadcounter,2*nnodes))
+! allocate(u(2*nnodes))
+! allocate(b(4*quadcounter))
+! u=0
+! b=0
 
 
+! ! do k=quadstart, quadend !for all the quad elements do
+! ! 	call generateesm(kele, mesh(k), properties) 
+! ! 	do i=1,4
+! ! 		ii = 
 
-!call generateesm(kele,testelement,properties)
+! ! 	! do j=1,4 ! ideally vary leftmost index of the bigger Matrix more quickly because fortran is column-major -> that's quicker
+! ! 	! 	iglobal = 4*(i-quadstart)+j
+! ! 	! 	do k=1,4
+! ! 	! 		jglobal=2*mesh(i)%node(k)%num-1 ! for the x-displacement of node j
+! ! 	! 		Kglobal(iglobal,jglobal)= Kglobal(iglobal,jglobal)+kele(j,2*k-1)
+! ! 	! 		jglobal=2*mesh(i)%node(k)%num ! for the y- displacement of node j
+! ! 	! 		Kglobal(iglobal,jglobal)=Kglobal(iglobal,jglobal)+ kele(j,2*k)
+! ! 	! 	end do
+! ! 	! end do
+! ! end do
 
+! open(11, file='Kprint')
+! write(11,*)  Kglobal(50,:)
 
-!!!!!!!!!!!!!!!!!!!!!!  PETSC-PART !!!!!!!!!!!!!!!!!!!!!!!!
-
-
-! Initialization
-
-call PetscInitialize(PETSC_NULL_CHARACTER,ierrpet)
-call MPI_Comm_size(PETSC_COMM_WORLD, sizepet, ierrpet)
-if (sizepet .ne. 1) then
-	call MPI_Comm_rank(PETSC_COMM_WORLD,rankpet, ierrpet)
-	if (rankpet .eq. 0) then 
-		write(6,*) 'This is a uniprocessor example only!'
-	endif
-	SETERRQ(PETSC_COMM_WORLD, 1, ' ', ierrpet)
-endif
-nonepet = -1.0
-onepet	= 1.0
-npet 	= 10
-i1pet 	= 1
-i2pet 	= 2
-i3pet	= 3
-call PetScOptionsGetInt(PETSC_NULL_CHARACTER, '-n',npet, flgpet, ierrpet)
-
-! Creating the matrix
-
-call MatCreate(PETSC_COMM_WORLD, Apet, ierrpet)
-call MatSetSizes(Apet, PETSC_DECIDE, PETSC_DECIDE, npet, npet, ierrpet)
-call MatSetFromOptions(Apet, ierrpet)
-call MatSetUp(Apet,ierrpet)
-
-! Assembling the matrix
-
-valuepet(1) = -1.0
-valuepet(2) = 2.0
-valuepet(3) = -1.0
-
-do 50 ipet=1,npet-2
-	colpet(1) = ipet-1
-	colpet(2) = ipet
-	colpet(3) = ipet+1
-	call MatSetValues(Apet,i1pet,ipet,i3pet,colpet,valuepet,INSERT_VALUES,ierrpet)
-50	continue
-	i= npet -1
-	colpet(1) = npet -2
-	colpet(2) = npet -1	
-	call MatSetValues(Apet,i1pet,ipet,i3pet,colpet,valuepet,INSERT_VALUES,ierrpet)
-	ipet = 0
-	colpet(1) = 0
-	colpet(2) = 1
-	valuepet(1)	= 2.0
-	valuepet(2)	= -1.0
-	call MatSetValues(Apet,i1pet,ipet,i3pet,colpet,valuepet,INSERT_VALUES,ierrpet)
-	call MatAssemblyBegin(Apet, MAT_FINAL_ASSEMBLY, ierrpet)
-	call MatAssemblyEnd(Apet, MAT_FINAL_ASSEMBLY, ierrpet)
-
-
-! creating the vectors : one is created from scratch and then duplicated
-
-call VecCreate(PETSC_COMM_WORLD, xpet, ierrpet)
-call VecSetSizes(xpet, PETSC_DECIDE, npet, ierrpet)
-call VecSetFromOptions(xpet, ierrpet)
-call VecDuplicate(xpet, bpet, ierrpet)
-call VecDuplicate(xpet, upet, ierrpet)
-
-! Setting the exact solution. then compute the right hand side vector
-
-call VecSet(upet, onepet, ierrpet)
-call MatMult(Apet, upet, bpet, ierrpet)
-
-!!!!!!! creating the linear solver and settin various options
-call KSPCreate(PETSC_COMM_WORLD,ksppet, ierrpet)
-
-! Setting the operators.
-!  HERE, the Matrix that defines the linear system also serves as preconditioning matrix 
-call KSPSetOperators(ksppet,Apet,Apet,ierrpet)
-
-!setting linear solver defaults for this problem (optional)
-! Those options could also be configured at runtime
-
-call KSPGetPC(ksppet, pcpet, ierrpet)
-call PCSetType(pcpet, PCJACOBI, ierrpet)
-tolpet = 1.d-7
-call KSPSetTolerances(ksppet,tolpet,PETSC_DEFAULT_REAL, PETSC_DEFAULT_REAL, PETSC_DEFAULT_INTEGER, ierrpet)
-
-! setting the runtime options
-
-call KSPSetFromOptions(ksppet, ierrpet)
-
-!!!!!!!!!!!!! solving the linear system
-call KSPSolve(ksppet, bpet, xpet, ierrpet)
-
-! viewing the solver info
-
-call KSPView(ksppet, PETSC_VIEWER_STDOUT_WORLD, ierrpet)
-
-!!!! check solution and cleanup
-
-call VecAXPY(xpet,nonepet, upet, ierrpet)
-call VecNorm(xpet,NORM_2, normpet, ierrpet)
-call KSPGetIterationNumber(ksppet, itspet, ierrpet)
-if (normpet .gt. 1.e-12) then
-	write(6,100) normpet, itspet
-else
-	write(6,200) itspet
-endif
-
-100 format('Norm of error = ', e11.4,'Iterations = ', i5)
-200 format('Norm of error < 1.e-12, Iterations 0 ', i5)
-
-! Freeing workspace:
-
-call VecDestroy(xpet, ierrpet)
-call VecDestroy(upet, ierrpet)
-call VecDestroy(bpet, ierrpet)
-call MatDestroy(Apet, ierrpet)
-call KSPDestroy(ksppet, ierrpet)
-call PetscFinalize(ierrpet)
-
-!!!!!!!!!!!!!!!!!!! End of the petsc part
+! ! now, in theory, all we have to do is to solve the system:
 
 
 
 
 
-contains
 
-function globaldof(element, localdof) ! returns the global degree of freedom in depenande of the local degree of freedom
-	type(elementtype), intent(in) :: element
-	integer, intent(in) :: localdof
-	integer ,intent(out) :: globaldof
-	integer:: localnodenum, nodedof, globalnodenum
+! !call generateesm(kele,testelement,properties)
 
-	if mod(localdof,2) then 
-		localnodenum= localdof/2
-		nodedof=2
-	else
-		localnodenum=(localdof+1)/2
-		nodedof=1
-	endif
 
-	globalnodenum=element%node(localnodenum)%num
+! !!!!!!!!!!!!!!!!!!!!!!  PETSC-PART !!!!!!!!!!!!!!!!!!!!!!!!
 
-	globaldof=2*globalnodenum-(2-nodedof)
 
-end function globaldof
+! ! Initialization
+
+! call PetscInitialize(PETSC_NULL_CHARACTER,ierrpet)
+! call MPI_Comm_size(PETSC_COMM_WORLD, sizepet, ierrpet)
+! if (sizepet .ne. 1) then
+! 	call MPI_Comm_rank(PETSC_COMM_WORLD,rankpet, ierrpet)
+! 	if (rankpet .eq. 0) then 
+! 		write(6,*) 'This is a uniprocessor example only!'
+! 	endif
+! 	SETERRQ(PETSC_COMM_WORLD, 1, ' ', ierrpet)
+! endif
+! nonepet = -1.0
+! onepet	= 1.0
+! npet 	= 10
+! i1pet 	= 1
+! i2pet 	= 2
+! i3pet	= 3
+! call PetScOptionsGetInt(PETSC_NULL_CHARACTER, '-n',npet, flgpet, ierrpet)
+
+! ! Creating the matrix
+
+! call MatCreate(PETSC_COMM_WORLD, Apet, ierrpet)
+! call MatSetSizes(Apet, PETSC_DECIDE, PETSC_DECIDE, npet, npet, ierrpet)
+! call MatSetFromOptions(Apet, ierrpet)
+! call MatSetUp(Apet,ierrpet)
+
+! ! Assembling the matrix
+
+! valuepet(1) = -1.0
+! valuepet(2) = 2.0
+! valuepet(3) = -1.0
+
+! do 50 ipet=1,npet-2
+! 	colpet(1) = ipet-1
+! 	colpet(2) = ipet
+! 	colpet(3) = ipet+1
+! 	call MatSetValues(Apet,i1pet,ipet,i3pet,colpet,valuepet,INSERT_VALUES,ierrpet)
+! 50	continue
+! 	i= npet -1
+! 	colpet(1) = npet -2
+! 	colpet(2) = npet -1	
+! 	call MatSetValues(Apet,i1pet,ipet,i3pet,colpet,valuepet,INSERT_VALUES,ierrpet)
+! 	ipet = 0
+! 	colpet(1) = 0
+! 	colpet(2) = 1
+! 	valuepet(1)	= 2.0
+! 	valuepet(2)	= -1.0
+! 	call MatSetValues(Apet,i1pet,ipet,i3pet,colpet,valuepet,INSERT_VALUES,ierrpet)
+! 	call MatAssemblyBegin(Apet, MAT_FINAL_ASSEMBLY, ierrpet)
+! 	call MatAssemblyEnd(Apet, MAT_FINAL_ASSEMBLY, ierrpet)
+
+
+! ! creating the vectors : one is created from scratch and then duplicated
+
+! call VecCreate(PETSC_COMM_WORLD, xpet, ierrpet)
+! call VecSetSizes(xpet, PETSC_DECIDE, npet, ierrpet)
+! call VecSetFromOptions(xpet, ierrpet)
+! call VecDuplicate(xpet, bpet, ierrpet)
+! call VecDuplicate(xpet, upet, ierrpet)
+
+! ! Setting the exact solution. then compute the right hand side vector
+
+! call VecSet(upet, onepet, ierrpet)
+! call MatMult(Apet, upet, bpet, ierrpet)
+
+! !!!!!!! creating the linear solver and settin various options
+! call KSPCreate(PETSC_COMM_WORLD,ksppet, ierrpet)
+
+! ! Setting the operators.
+! !  HERE, the Matrix that defines the linear system also serves as preconditioning matrix 
+! call KSPSetOperators(ksppet,Apet,Apet,ierrpet)
+
+! !setting linear solver defaults for this problem (optional)
+! ! Those options could also be configured at runtime
+
+! call KSPGetPC(ksppet, pcpet, ierrpet)
+! call PCSetType(pcpet, PCJACOBI, ierrpet)
+! tolpet = 1.d-7
+! call KSPSetTolerances(ksppet,tolpet,PETSC_DEFAULT_REAL, PETSC_DEFAULT_REAL, PETSC_DEFAULT_INTEGER, ierrpet)
+
+! ! setting the runtime options
+
+! call KSPSetFromOptions(ksppet, ierrpet)
+
+! !!!!!!!!!!!!! solving the linear system
+! call KSPSolve(ksppet, bpet, xpet, ierrpet)
+
+! ! viewing the solver info
+
+! call KSPView(ksppet, PETSC_VIEWER_STDOUT_WORLD, ierrpet)
+
+! !!!! check solution and cleanup
+
+! call VecAXPY(xpet,nonepet, upet, ierrpet)
+! call VecNorm(xpet,NORM_2, normpet, ierrpet)
+! call KSPGetIterationNumber(ksppet, itspet, ierrpet)
+! if (normpet .gt. 1.e-12) then
+! 	write(6,100) normpet, itspet
+! else
+! 	write(6,200) itspet
+! endif
+
+! 100 format('Norm of error = ', e11.4,'Iterations = ', i5)
+! 200 format('Norm of error < 1.e-12, Iterations 0 ', i5)
+
+! ! Freeing workspace:
+
+! call VecDestroy(xpet, ierrpet)
+! call VecDestroy(upet, ierrpet)
+! call VecDestroy(bpet, ierrpet)
+! call MatDestroy(Apet, ierrpet)
+! call KSPDestroy(ksppet, ierrpet)
+! call PetscFinalize(ierrpet)
+
+! !!!!!!!!!!!!!!!!!!! End of the petsc part
+
+
+
+
+
+! contains
+
+! function globaldof(element, localdof) ! returns the global degree of freedom in depenande of the local degree of freedom
+! 	integer :: globaldof
+! 	type(elementtype), intent(in) :: element
+! 	integer, intent(in) :: localdof
+! 	integer:: localnodenum, nodedof, globalnodenum
+
+! 	if (mod(localdof,2)==0) then 
+! 		localnodenum= localdof/2
+! 		nodedof=2
+! 	else
+! 		localnodenum=(localdof+1)/2
+! 		nodedof=1
+! 	endif
+
+! 	globalnodenum=element%node(localnodenum)%num
+
+! 	globaldof=2*globalnodenum-(2-nodedof)
+
+! end function globaldof
 
 
 ! 
