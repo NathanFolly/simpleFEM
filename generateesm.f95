@@ -2,68 +2,32 @@
 ! This is essentially a subroutine that generates the element stiffness matrix for a quadrilateral element
 ! Input: list  of Nodes involved
 
-! We create the stiffness matrix for a four-node quadrilateral element
-! The matrix is a 8x4 matrix. After matrix multiplication with the displacement vector, it should equal the force (or zero)
-! k x u = f
-! Where k=8x4, u=8x1={ux1,uy1,ux2,uy2,ux3,uy3,ux4,uy4} and f=8x1={fx1,fy1,...,fy4}
-!
+
 
 subroutine generateesm(kk, element, property)
 
 use mytypes
 
 
-!This interface helps us to create a function pointer so as to select which entry of the element stiffness matrix to integrate in the subroutine gaussint 
-abstract interface
-	function kxx(xx,yy,xi,eta,E,nu)
-		real:: kxx
-		real, dimension(4) :: xx,yy
-		real :: xi, eta, E, nu
-	end function kxx
-end interface
-
-
 type(elementtype), intent(in) :: element
 real, dimension(8,8), intent(inout)::kk
-real, dimension(8,8) :: kkdummy ! I had to create this dummy because I made an error with the orientation of the element stiffness matrix and ended up calculating the transpose of k in Maple
 type(propertytype), intent(in):: property
 
 type(nodetype), dimension(4) :: node
 real, dimension(8) :: localcoords
 real, dimension(2,2) :: Jacoby
 real, dimension(4) :: xx, yy
-real::placeholder=0
 
 
-! This pointer helps us select which function to integrate:
-
-procedure(kxx), pointer :: kpntr => null()
-
-! Testing
-! let's see what k looks like:
-print *,k(xx,yy,1.,1.,property%E,property%nu)
+do i=1,4
+     xx(i)=element%node(i)%x
+     yy(i)=element%node(i)%y
+end do
 
 
 
+call gaussint(kk)
 
-! !We create the vectors of nodal coordinates that are important for the evaluation of our integrals
-! do i=1,4
-! 	xx(i)=element%node(i)%x
-! 	yy(i)=element%node(i)%y
-! end do
-
-
-! do i=1,8
-! 	do j=1,4
-! 		placeholder=0
-! 		call gaussint(placeholder,i,j)
-! 		kdummy(i,j) = placeholder
-! 	end do
-! end do
-
-! ! We need to transpose the dummy element stiffness matrix to orient it the right way.
-! ! This is necessary due to my mistake in creating the lengthy terms below
-! k=transpose(kdummy)
 
 
 contains
@@ -71,42 +35,41 @@ contains
 
 
 
-! subroutine gaussint(placeholder,ipos,jpos)
+subroutine gaussint(dummymatrix)
 
-! 	implicit none
-! 	real:: placeholder
-! 	integer, intent(in):: ipos,jpos
-! 	real, dimension(3) :: xi, eta
-! 	real:: w1, w2, w
-! 	integer::i,j
-! 	real:: intermedres=0
+	implicit none
+	real, dimension(8,8), intent(inout) :: dummymatrix
+	real, dimension(3) :: xi, eta
+	real:: w1, w2, w
+	integer::i,j
+	real, dimension(8,8):: intermedres=0
 
-! 	call funcselector(ipos,jpos)
+!	call funcselector(ipos,jpos)
 
-! 	xi=(/sqrt(3./5.),-sqrt(3./5.),0./)
-! 	eta=(/sqrt(3./5.),-sqrt(3./5.),0./)
-! 	intermedres=0
+	xi=(/sqrt(3./5.),-sqrt(3./5.),0./)
+	eta=(/sqrt(3./5.),-sqrt(3./5.),0./)
+	intermedres=0
 
-! 	do i =1,3
-! 		if (i==3) then
-! 			w1=8./9.
-! 		else
-! 			w1=5./9.
-! 		end if
+	do i =1,3
+		if (i==3) then
+			w1=8./9.
+		else
+			w1=5./9.
+		end if
 
-! 		do j=1,3
-! 			if (j==3) then
-! 				w2=8./9.
-! 			else
-! 				w2=5./9.
-! 			end if
+		do j=1,3
+			if (j==3) then
+				w2=8./9.
+			else
+				w2=5./9.
+			end if
 			
-! 			w=w1*w2
-! 			intermedres=intermedres+w*kpntr(xx,yy,xi(i),eta(j),property%E,property%nu)
-! 		end do
-! 	end do
-! 	placeholder = intermedres
-! end subroutine gaussint
+			w=w1*w2
+			intermedres=intermedres+w*k(xx,yy,xi(i),eta(j),property%E,property%nu)
+		end do
+	end do
+	dummymatrix = intermedres
+end subroutine gaussint
 
 
 
@@ -226,10 +189,10 @@ contains
 function k(xx,yy,xi,eta,E,nu)
 	implicit none
      real, dimension(8,8) :: k
-	real, dimension(4), intent(in) :: xx, yy ! Those are the coordinates of the points involved
-	real, intent(in)::xi, eta, E, nu
+	real, dimension(4):: xx, yy ! Those are the coordinates of the points involved
+	real::xi, eta, E, nu
 
-     k(:,:)=0
+
 
 	 k(1,1) = (-xx(3) * eta * yy(1) / 0.8D1 - xx(2) * eta * yy(3) / 0.8&
      &D1 - xx(3) * yy(4) * xi / 0.8D1 + xx(4) * eta * yy(1) / 0.8D1 - xx&
