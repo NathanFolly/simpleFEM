@@ -25,6 +25,11 @@ character*50 :: line, dchar
 
 
 open(5,file=meshfilename, status='old',iostat=filestatus)
+if (filestatus .ne. 0) then
+	print *,'Error reading the meshfile. Fortran error Code:', filestatus
+	call exit()
+end if
+
 rewind(5)
 
 10 read(5,'(A)', end =11) line
