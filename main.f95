@@ -49,12 +49,13 @@ implicit none
 #include </home/hartig/petsc/include/petsc/finclude/petscmat.h>
 #include </home/hartig/petsc/include/petsc/finclude/petscksp.h>
 #include </home/hartig/petsc/include/petsc/finclude/petscpc.h>
+#include </home/hartig/petsc/include/petsc/finclude/petscviewer.h>
 !!!!!!!!!
 
 !!!!!!!!\
 ! These Variables are created for use with PETSc
 
-Vec 			xpet,bpet,upet
+Vec 			u, b
 Mat 			Apet
 KSP 			ksppet
 PC 				pcpet
@@ -65,15 +66,18 @@ PetscBool		flgpet
 PetscMPIInt		sizepet, rankpet
 PetscScalar		nonepet, onepet, valuepet(3)
 
+PetscViewer 	viewer
+PetscReal 		petsckele(8,8), petscdummy ! We need these petsc type variables because 
+				!the MatSetValues subroutine refuses to produce the correct output receiving 
+				!anything else than petsc-variables
+
 !!!!!!!
 
 
 type(elementtype), allocatable, target :: mesh(:) ! essentially the mesh is just an array of elements
 type(elementtype), pointer :: meshpointer(:)
-real, dimension(8,8) :: kele ! This is the dummy element stiffness matrix that
+real, dimension(8,8) :: kele=0 ! This is the dummy element stiffness matrix that
 !gets updated by the subroutine generateesm
-real, allocatable 	::	Kglobal(:,:) ! The global stiffness matrix
-real, allocatable	::	u(:), b(:)
 character*50, parameter :: meshfile='testmesh_2D_box_quad.msh'
 
 integer :: ndof_nodal, ndof_global !The respective degrees of freedom 
@@ -81,6 +85,7 @@ integer :: ndof_nodal, ndof_global !The respective degrees of freedom
 integer :: quadstart=0, quadend=0, quadcounter=0, nnodes=0
 integer :: i,j,k, ii, jj
 
+integer, dimension(8) :: rowmap, columnmap !vectors mapping the local dof to the global dof
 
 interface	! need this interface so that we can pass an allocatable array to 
 			!subroutine readmesh and allocate it there according to the number 
@@ -129,130 +134,131 @@ call readmesh(mesh, meshfile, quadstart, quadend, quadcounter, nnodes)
 ndof_nodal= 2
 !determinin ghte globval degree of freedom is easy:
 ndof_global= ndof_nodal*nnodes
-! we assemble the Matrix
-! not using any assembly strategy. just adding up everything
-print *,'done reading mesh'
-
-allocate(Kglobal(ndof_global,ndof_global))
-allocate(u(ndof_global))
-allocate(b(ndof_global))
-u=0
-b=0
 
 
-do k=quadstart, quadend !for all the quad elements do
-	call generateesm(kele, mesh(k), properties) 
-	do i=1,8
-		ii = globaldof(mesh(k),i)
-		do j=1,8
-		jj = globaldof(mesh(k),j)
-		Kglobal(ii,jj)=Kglobal(ii,jj)+kele(i,j)
-		end do
-	end do 
-end do
-
-open(11, file='Kprint')
-write(11,*)  Kglobal(50,:)
-
-! now, in theory, all we have to do is to solve the system:
+! Assembly of the global matrix is one directlyin PetSC
 
 
-
-
-
-
-!call generateesm(kele,testelement,properties)
-
-
-!!!!!!!!!!!!!!!!!!!!!!  PETSC-PART !!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!  PETSC-PART !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 
 ! Initialization
 
+! PETSc initialize checks for an existing petsc database. since we are not using one in this case,
+! set the first argument in the initialization subroutine to be PETSC_NULL_CHARACTER
+
 call PetscInitialize(PETSC_NULL_CHARACTER,ierrpet)
+
+
+
+! MPI_Comm_size: number of processes running in the specified communicator.
+! in this case:
+! PETSC_COMM_WORLD : all petsc MPI processes currently runnign that petsc is aware of
+! hence sizepet: all the currently running processes petsc is aware of 
 call MPI_Comm_size(PETSC_COMM_WORLD, sizepet, ierrpet)
 if (sizepet .ne. 1) then
+	! MPI_Comm_rank determines the rank of the calling proces (this one) inside the specified
+	! group of processes (here : all of them)
 	call MPI_Comm_rank(PETSC_COMM_WORLD,rankpet, ierrpet)
 	if (rankpet .eq. 0) then 
-		write(6,*) 'This is a uniprocessor example only!'
+		write(*,*) 'This is a uniprocessor calculation only!'
 	endif
+
 	SETERRQ(PETSC_COMM_WORLD, 1, ' ', ierrpet)
 endif
+
+
+! I believe those variables are not needed
+
 nonepet = -1.0
 onepet	= 1.0
 npet 	= 10
 i1pet 	= 1
 i2pet 	= 2
 i3pet	= 3
-call PetScOptionsGetInt(PETSC_NULL_CHARACTER, '-n',npet, flgpet, ierrpet)
+
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+
+
+! This subroutine checks whether we have input an option when calling the program
+! e.g. : ./simpleFEM -n 100
+! then the program sets the integer variable npet to 100 
+
+
+!  call PetScOptionsGetInt(PETSC_NULL_CHARACTER, '-n',npet, flgpet, ierrpet)
+
+
+! however, we know the dimension of the problem from reading the mesh and it is 
+! the global degree of freedom
+
+
+
+
 
 ! Creating the matrix
 
 call MatCreate(PETSC_COMM_WORLD, Apet, ierrpet)
-call MatSetSizes(Apet, PETSC_DECIDE, PETSC_DECIDE, npet, npet, ierrpet)
+call MatSetSizes(Apet, PETSC_DECIDE, PETSC_DECIDE, ndof_global, ndof_global, ierrpet)
 call MatSetFromOptions(Apet, ierrpet)
+call MatSetType(Apet,MATDENSE,ierrpet)
 call MatSetUp(Apet,ierrpet)
 
+
 ! Assembling the matrix
+!! CAREFUL! petsc matrices use indices from 0 N-1 while fortran uses indices from 1 to N
+do k = quadstart, quadend
+	call generateesm(kele,mesh(k),properties)
+	petsckele=kele
+	do i=1,8
+		rowmap(i) = globaldof(mesh(k),i)
+		columnmap(i) = globaldof(mesh(k),i)
+	end do
+	call MatSetValues(Apet,8,rowmap-1,8,columnmap-1,petsckele,ADD_VALUES,ierrpet)	
+end do
 
-valuepet(1) = -1.0
-valuepet(2) = 2.0
-valuepet(3) = -1.0
+call MatAssemblyBegin(Apet, MAT_FINAL_ASSEMBLY, ierrpet)
+call MatAssemblyEnd(Apet, MAT_FINAL_ASSEMBLY, ierrpet)
 
-do 50 ipet=1,npet-2
-	colpet(1) = ipet-1
-	colpet(2) = ipet
-	colpet(3) = ipet+1
-	call MatSetValues(Apet,i1pet,ipet,i3pet,colpet,valuepet,INSERT_VALUES,ierrpet)
-50	continue
-	i= npet -1
-	colpet(1) = npet -2
-	colpet(2) = npet -1	
-	call MatSetValues(Apet,i1pet,ipet,i3pet,colpet,valuepet,INSERT_VALUES,ierrpet)
-	ipet = 0
-	colpet(1) = 0
-	colpet(2) = 1
-	valuepet(1)	= 2.0
-	valuepet(2)	= -1.0
-	call MatSetValues(Apet,i1pet,ipet,i3pet,colpet,valuepet,INSERT_VALUES,ierrpet)
-	call MatAssemblyBegin(Apet, MAT_FINAL_ASSEMBLY, ierrpet)
-	call MatAssemblyEnd(Apet, MAT_FINAL_ASSEMBLY, ierrpet)
+! Let's look at the matrix we assembled :
+call PetscViewerCreate(PETSC_COMM_WORLD, viewer, ierrpet)
+call PetscViewerSetType(viewer, PETSCVIEWERASCII, ierrpet)
+call PetscViewerFileSetName(viewer, 'Kay', ierrpet)
+call MatView(Apet,viewer,ierrpet)
 
 
 ! creating the vectors : one is created from scratch and then duplicated
 
-call VecCreate(PETSC_COMM_WORLD, xpet, ierrpet)
-call VecSetSizes(xpet, PETSC_DECIDE, npet, ierrpet)
-call VecSetFromOptions(xpet, ierrpet)
-call VecDuplicate(xpet, bpet, ierrpet)
-call VecDuplicate(xpet, upet, ierrpet)
+call VecCreate(PETSC_COMM_WORLD, u, ierrpet)
+call VecSetSizes(u, PETSC_DECIDE, ndof_global, ierrpet)
+call VecSetFromOptions(u, ierrpet)
+call VecDuplicate(u, b, ierrpet)
+! do we need this? : call VecDuplicate(xpet, upet, ierrpet)
 
-! Setting the exact solution. then compute the right hand side vector
 
-call VecSet(upet, onepet, ierrpet)
-call MatMult(Apet, upet, bpet, ierrpet)
+! setting the force vector
+call VecSet(b,0,ierrpet)
 
-!!!!!!! creating the linear solver and settin various options
-call KSPCreate(PETSC_COMM_WORLD,ksppet, ierrpet)
-
-! Setting the operators.
-!  HERE, the Matrix that defines the linear system also serves as preconditioning matrix 
+! creating the linear solver
+call KSPCreate(PETSC_COMM_WORLD,ksppet,ierrpet)
+! setting the operators, using the same matrix that defines the linear system as preconditioning matrix
 call KSPSetOperators(ksppet,Apet,Apet,ierrpet)
-
-!setting linear solver defaults for this problem (optional)
-! Those options could also be configured at runtime
-
+! creating a pointer to the preconditioning context of our Krylov space solver: 
 call KSPGetPC(ksppet, pcpet, ierrpet)
-call PCSetType(pcpet, PCJACOBI, ierrpet)
-tolpet = 1.d-7
-call KSPSetTolerances(ksppet,tolpet,PETSC_DEFAULT_REAL, PETSC_DEFAULT_REAL, PETSC_DEFAULT_INTEGER, ierrpet)
+! ... so that we can easily manipulate it here:
+call PCSetType(pcpet,PCJACOBI,ierrpet)
+!setting the tolerances for the solver:
+tolpet=1.d-7
+call KSPSetTolerances(ksppet,tolpet, PETSC_DEFAULT_REAL,PETSC_DEFAULT_REAL,PETSC_DEFAULT_INTEGER, ierrpet)
+! we can also manipulate the solver options when later calling the program with flags.
+! For this to be possible, we need to call the following subroutine:
+call KSPSetFromOptions(ksppet,ierrpet)
 
-! setting the runtime options
+!!!! now we solve:!!!!!!
+call KSPSolve(ksppet,b,u,ierrpet)
 
-call KSPSetFromOptions(ksppet, ierrpet)
 
-!!!!!!!!!!!!! solving the linear system
-call KSPSolve(ksppet, bpet, xpet, ierrpet)
 
 ! viewing the solver info
 
@@ -260,29 +266,32 @@ call KSPView(ksppet, PETSC_VIEWER_STDOUT_WORLD, ierrpet)
 
 !!!! check solution and cleanup
 
-call VecAXPY(xpet,nonepet, upet, ierrpet)
-call VecNorm(xpet,NORM_2, normpet, ierrpet)
+! wont work becaus we have no exact solution:  call VecAXPY(xpet,nonepet, upet, ierrpet)
+! we could check for the residual with that :   call VecNorm(xpet,NORM_2, normpet, ierrpet)
 call KSPGetIterationNumber(ksppet, itspet, ierrpet)
-if (normpet .gt. 1.e-12) then
-	write(6,100) normpet, itspet
-else
-	write(6,200) itspet
-endif
+! if (normpet .gt. 1.e-12) then
+! 	write(6,100) normpet, itspet
+! else
+! 	write(6,200) itspet
+! endif
 
 100 format('Norm of error = ', e11.4,'Iterations = ', i5)
 200 format('Norm of error < 1.e-12, Iterations 0 ', i5)
 
+
+
+
+
 ! Freeing workspace:
 
-call VecDestroy(xpet, ierrpet)
-call VecDestroy(upet, ierrpet)
-call VecDestroy(bpet, ierrpet)
+!call VecDestroy(xpet, ierrpet)
+call VecDestroy(u, ierrpet)
+call VecDestroy(b, ierrpet)
 call MatDestroy(Apet, ierrpet)
 call KSPDestroy(ksppet, ierrpet)
 call PetscFinalize(ierrpet)
 
 !!!!!!!!!!!!!!!!!!! End of the petsc part
-
 
 
 
