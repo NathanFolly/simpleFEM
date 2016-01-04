@@ -44,12 +44,12 @@ use mytypes
 implicit none
 
 !Tryout for petsc:
-#include </home/hartig/petsc/include/petsc/finclude/petscsys.h>
-#include </home/hartig/petsc/include/petsc/finclude/petscvec.h>
-#include </home/hartig/petsc/include/petsc/finclude/petscmat.h>
-#include </home/hartig/petsc/include/petsc/finclude/petscksp.h>
-#include </home/hartig/petsc/include/petsc/finclude/petscpc.h>
-#include </home/hartig/petsc/include/petsc/finclude/petscviewer.h>
+#include <petscsys.h>
+#include <petscvec.h>
+#include <petscmat.h>
+#include <petscksp.h>
+#include <petscpc.h>
+#include <petscviewer.h>
 !!!!!!!!!
 
 !!!!!!!!\
@@ -125,8 +125,6 @@ end interface
 
 ! We read in the mesh created by the external program gmsh
 meshpointer=>mesh(:)
-
-
 
 call readmesh(mesh, meshfile, quadstart, quadend, quadcounter, nnodes)
 
