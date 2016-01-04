@@ -43,7 +43,7 @@ program main
 use mytypes
 implicit none
 
-!Tryout for petsc:
+!Including the relevant petsc header files:
 #include <petscsys.h>
 #include <petscvec.h>
 #include <petscmat.h>
