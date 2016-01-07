@@ -8,7 +8,7 @@ LD_LIBRARY_PATH= $(PETSC_DIR)/$(PETSC_ARCH)/lib
 FFLAGS = -x f95-cpp-input -I$(PETSC_DIR)/include/petsc/finclude/ -I$(PETSC_DIR)/include/ -I$(PETSC_DIR)/$(PETSC_ARCH)/include/ -Dmypetscpath=$(PETSC_DIR)
 FC= mpifort
 all: main.o generateesm.o readmesh.o
-	$(FC) -L$(LD_LIBRARY_PATH) -o simpleFEM main.o generateesm.o readmesh.o -lpetsc
+	$(FC) -Wl,-rpath=$(LD_LIBRARY_PATH) -L$(LD_LIBRARY_PATH) -o simpleFEM main.o generateesm.o readmesh.o -lpetsc
 
 main.o: main.f95
 	$(FC) $(FFLAGS) -c main.f95

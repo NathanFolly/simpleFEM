@@ -1,13 +1,13 @@
-GFORTRAN module version '9' created from main.f95
-MD5:fd8191bc057c08fa30e5faa1cb6daf29 -- If you edit this, you'll get what you deserve.
+GFORTRAN module version '10' created from main.f95
+MD5:2662b243a8cb20838c7f14825886278e -- If you edit this, you'll get what you deserve.
 
 (() () () () () () () () () () () () () () () () () () () () () () () ()
 () () ())
 
 ()
 
-(('elementtype' 'mytypes' 2) ('statetype' 'mytypes' 3) ('propertytype'
-'mytypes' 4) ('nodetype' 'mytypes' 5))
+(('elementtype' 'mytypes' 2) ('nodetype' 'mytypes' 3) ('propertytype'
+'mytypes' 4) ('statetype' 'mytypes' 5))
 
 ()
 
@@ -23,10 +23,10 @@ UNKNOWN-PROC UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS ()) (7 'kind' (INTEGER
 UNKNOWN 0 0) UNKNOWN-ACCESS ()) (8 'name' (CHARACTER 1 0 0 0 CHARACTER (
 (CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '20'))) () (UNKNOWN-FL
 UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS ()) (9
-'node' (DERIVED 5 0 0 0 DERIVED ()) (1 0 DEFERRED () ()) (UNKNOWN-FL
+'node' (DERIVED 3 0 0 0 DERIVED ()) (1 0 DEFERRED () ()) (UNKNOWN-FL
 UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 ALLOCATABLE DIMENSION)
 UNKNOWN-ACCESS ())) PUBLIC (() () () ()) () 0 0 69809156)
-5 'Nodetype' 'mytypes' '' 1 ((DERIVED UNKNOWN-INTENT UNKNOWN-PROC
+3 'Nodetype' 'mytypes' '' 1 ((DERIVED UNKNOWN-INTENT UNKNOWN-PROC
 UNKNOWN UNKNOWN 0 0) (UNKNOWN 0 0 0 0 UNKNOWN ()) 0 0 () () 0 ((10 'num'
 (INTEGER 4 0 0 0 INTEGER ()) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC
 UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS ()) (11 'x' (REAL 4 0 0 0 REAL ()) ()
@@ -34,7 +34,7 @@ UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS ()) (11 'x' (REAL 4 0 0 0 REAL ()) ()
 UNKNOWN-ACCESS ()) (12 'y' (REAL 4 0 0 0 REAL ()) () (UNKNOWN-FL
 UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS ()) (13
 'z' (REAL 4 0 0 0 REAL ()) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC
-UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS ()) (14 'state' (DERIVED 3 0 0 0
+UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS ()) (14 'state' (DERIVED 5 0 0 0
 DERIVED ()) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0
 0) UNKNOWN-ACCESS ())) PUBLIC (() () () ()) () 0 0 6136590)
 4 'Propertytype' 'mytypes' '' 1 ((DERIVED UNKNOWN-INTENT UNKNOWN-PROC
@@ -43,7 +43,7 @@ REAL 4 0 0 0 REAL ()) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN
 UNKNOWN 0 0) UNKNOWN-ACCESS ()) (16 'nu' (REAL 4 0 0 0 REAL ()) () (
 UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0)
 UNKNOWN-ACCESS ())) PUBLIC (() () () ()) () 0 0 16158881)
-3 'Statetype' 'mytypes' '' 1 ((DERIVED UNKNOWN-INTENT UNKNOWN-PROC
+5 'Statetype' 'mytypes' '' 1 ((DERIVED UNKNOWN-INTENT UNKNOWN-PROC
 UNKNOWN UNKNOWN 0 0) (UNKNOWN 0 0 0 0 UNKNOWN ()) 0 0 () () 0 ((17 'sigx'
 (REAL 4 0 0 0 REAL ()) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC
 UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS ()) (18 'sigy' (REAL 4 0 0 0 REAL ())
@@ -72,6 +72,6 @@ DECL UNKNOWN 0 0 FUNCTION GENERIC) (REAL 4 0 0 0 REAL ()) 0 0 () () 0 ()
 () () 0 0)
 )
 
-('Elementtype' 0 2 'Nodetype' 0 5 'Propertytype' 0 4 'Statetype' 0 3
+('Elementtype' 0 2 'Nodetype' 0 3 'Propertytype' 0 4 'Statetype' 0 5
 'elementtype' 0 23 'mytypes' 0 24 'nodetype' 0 25 'propertytype' 0 26
 'statetype' 0 27)

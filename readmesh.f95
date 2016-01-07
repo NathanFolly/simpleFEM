@@ -15,8 +15,17 @@ integer, intent(inout) :: nnodes
 character*50, intent(in) :: meshfilename
 integer, intent(inout) :: quadstart, quadend, quadcounter! this variable is used to count the number of quad type elements
 
+type nametagtype
+	integer :: objectdim
+	integer :: associatedobject
+	character*40 :: name
+end type nametagtype
+
+type(nametagtype), allocatable :: nametag(:)
+
+
 type(nodetype), allocatable :: node(:)
-integer:: filestatus, nelements, readstatus, eltype, ntags
+integer:: filestatus, nelements, readstatus, eltype, ntags, nphysnames
 integer, allocatable:: eltags(:)
 integer:: i,j
 integer, dimension(3) :: linehead
@@ -32,8 +41,17 @@ end if
 
 rewind(5)
 
+
+! Reading the nodes
 10 read(5,'(A)', end =11) line
- 	if (index(line, '$Nodes').ne. 0) then !here the nodes start
+	if (index(line, '$PhysicalNames').ne. 0 ) then !check i fthere are an nametags specified
+		read (5,*,iostat=readstatus) nphysnames
+		allocate(nametag(nphysnames))
+		do i=1,nphysnames
+			read(5,*,iostat=readstatus) nametag(i)%objectdim, nametag(i)%associatedobject, nametag(i)%name
+			print *, nametag(i)%objectdim, nametag(i)%associatedobject, nametag(i)%name
+		end do
+ 	else if (index(line, '$Nodes').ne. 0) then !here the nodes start
 		read(5,*,iostat=readstatus)  nnodes	! the next line states how many nodes there are
 		allocate(node(nnodes))
 		do i=1,nnodes	! Then the node data starts and can be read
