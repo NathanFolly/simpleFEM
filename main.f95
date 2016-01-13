@@ -154,16 +154,16 @@ call PetscInitialize(PETSC_NULL_CHARACTER,ierrpet)
 ! PETSC_COMM_WORLD : all petsc MPI processes currently runnign that petsc is aware of
 ! hence sizepet: all the currently running processes petsc is aware of 
 call MPI_Comm_size(PETSC_COMM_WORLD, sizepet, ierrpet)
-if (sizepet .ne. 1) then
-	! MPI_Comm_rank determines the rank of the calling proces (this one) inside the specified
-	! group of processes (here : all of them)
-	call MPI_Comm_rank(PETSC_COMM_WORLD,rankpet, ierrpet)
-	if (rankpet .eq. 0) then 
-		write(*,*) 'This is a uniprocessor calculation only!'
-	endif
+! if (sizepet .ne. 1) then
+! 	! MPI_Comm_rank determines the rank of the calling proces (this one) inside the specified
+! 	! group of processes (here : all of them)
+! 	call MPI_Comm_rank(PETSC_COMM_WORLD,rankpet, ierrpet)
+! 	if (rankpet .eq. 0) then 
+! 		write(*,*) 'This is a uniprocessor calculation only!'
+! 	endif
 
-	SETERRQ(PETSC_COMM_WORLD, 1, ' ', ierrpet)
-endif
+! 	SETERRQ(PETSC_COMM_WORLD, 1, ' ', ierrpet)
+! endif
 
 
 ! I believe those variables are not needed
@@ -200,20 +200,26 @@ i3pet	= 3
 call MatCreate(PETSC_COMM_WORLD, Apet, ierrpet)
 call MatSetSizes(Apet, PETSC_DECIDE, PETSC_DECIDE, ndof_global, ndof_global, ierrpet)
 call MatSetFromOptions(Apet, ierrpet)
-call MatSetType(Apet,MATDENSE,ierrpet)
+call MatSetType(Apet,MATAIJ,ierrpet)
 call MatSetUp(Apet,ierrpet)
 
 
 ! Assembling the matrix
 !! CAREFUL! petsc matrices use indices from 0 N-1 while fortran uses indices from 1 to N
+
 do k = quadstart, quadend
 	call generateesm(kele,mesh(k),properties)
 	petsckele=kele
 	do i=1,8
-		rowmap(i) = globaldof(mesh(k),i)
-		columnmap(i) = globaldof(mesh(k),i)
+		do j=1,8
+		call MatsetValue(Apet, globaldof(mesh(k),i)-1, globaldof(mesh(k),j)-1,petsckele(i,j),ADD_VALUES, ierrpet)
+		end do
 	end do
-	call MatSetValues(Apet,8,rowmap-1,8,columnmap-1,petsckele,ADD_VALUES,ierrpet)	
+	! do i=1,8
+	! 	rowmap(i) = globaldof(mesh(k),i)
+	! 	columnmap(i) = globaldof(mesh(k),i)
+	! end do
+	! call MatSetValues(Apet,8,rowmap-1,8,columnmap-1,petsckele,ADD_VALUES,ierrpet)	
 end do
 
 call MatAssemblyBegin(Apet, MAT_FINAL_ASSEMBLY, ierrpet)

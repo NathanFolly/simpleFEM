@@ -49,8 +49,8 @@ rewind(5)
 		allocate(nametag(nphysnames))
 		do i=1,nphysnames
 			read(5,*,iostat=readstatus) nametag(i)%objectdim, nametag(i)%associatedobject, nametag(i)%name
-			print *, nametag(i)%objectdim, nametag(i)%associatedobject, nametag(i)%name
 		end do
+		goto 10
  	else if (index(line, '$Nodes').ne. 0) then !here the nodes start
 		read(5,*,iostat=readstatus)  nnodes	! the next line states how many nodes there are
 		allocate(node(nnodes))
