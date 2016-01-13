@@ -28,7 +28,7 @@ module mytypes
 	 	! Right now, the node instances are stored within each element
 	 	! Pointers might be the better idea!!
 	 	integer :: num, kind
-	 	character*20 :: name
+	 	character*40 :: name
 	 	type(nodetype), allocatable :: node(:)
 	end type elementtype
 
@@ -208,8 +208,9 @@ call MatSetUp(Apet,ierrpet)
 !! CAREFUL! petsc matrices use indices from 0 N-1 while fortran uses indices from 1 to N
 
 do k = quadstart, quadend
+	print *, mesh(k)%name
 	call generateesm(kele,mesh(k),properties)
-	petsckele=kele
+	petsckele=kele ! because the Matsetvalue subroutine only accepts PETSC-scalars / PETSC-vectors
 	do i=1,8
 		do j=1,8
 		call MatsetValue(Apet, globaldof(mesh(k),i)-1, globaldof(mesh(k),j)-1,petsckele(i,j),ADD_VALUES, ierrpet)

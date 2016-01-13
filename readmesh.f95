@@ -22,6 +22,7 @@ type nametagtype
 end type nametagtype
 
 type(nametagtype), allocatable :: nametag(:)
+character*40, allocatable :: taglist(:) 
 
 
 type(nodetype), allocatable :: node(:)
@@ -47,8 +48,10 @@ rewind(5)
 	if (index(line, '$PhysicalNames').ne. 0 ) then !check i fthere are an nametags specified
 		read (5,*,iostat=readstatus) nphysnames
 		allocate(nametag(nphysnames))
+		allocate(taglist(nphysnames))
 		do i=1,nphysnames
 			read(5,*,iostat=readstatus) nametag(i)%objectdim, nametag(i)%associatedobject, nametag(i)%name
+			taglist(nametag(i)%associatedobject)=nametag(i)%name
 		end do
 		goto 10
  	else if (index(line, '$Nodes').ne. 0) then !here the nodes start
@@ -76,15 +79,16 @@ rewind(5)
 			ntags=linehead(3)
 			mesh(i)%num=linehead(1)
 			mesh(i)%kind=linehead(2)
-			!for now, we do not use the tags provided by gmash
 			if (mesh(i)%kind==15) then !kind 15 is a one-node element
 				allocate(dummy(3+ntags+1))
 				read(line,*) dummy
 				allocate(mesh(i)%node(1))
 				mesh(i)%node(1)=node(dummy(4+ntags))
+				! todo: insert name support for 1-node-elements
 			else if (mesh(i)%kind==1) then !kind 1 is a 2-node line element
 				allocate(dummy(3+ntags+2))
 				read(line,*) dummy
+				mesh(i)%name=taglist(dummy(4))
 				allocate(mesh(i)%node(2))
 				do j=1,2
 					mesh(i)%node(j)=node(dummy(3+ntags+j))
@@ -96,6 +100,7 @@ rewind(5)
 				quadcounter=quadcounter+1
 				allocate(dummy(3+ntags+4))
 				read(line,*)  dummy
+				mesh(i)%name=taglist(dummy(4))
 				allocate(mesh(i)%node(4))
 				do j=1,4
 					mesh(i)%node(j)=node(dummy(3+ntags+j))
@@ -115,7 +120,7 @@ rewind(5)
 
 14 close(5)
 
-
+print *, 'successfully read the mesh file'
 
 end subroutine readmesh
 
