@@ -39,6 +39,17 @@ integer, dimension(3) :: linehead
 integer, allocatable :: dummy(:)
 character*50 :: line, dchar
 
+!!!!!! need an interface to pass an allocatable array:
+interface
+	subroutine readBC(bcfile, bc, nbc)
+		use mytypes
+		implicit none
+		character*20, intent(in) :: bcfile
+		type(bcobject), allocatable, intent(inout):: bc(:)
+		integer, intent(inout) :: nbc
+	end subroutine readBC
+end interface
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! actual code!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 open(5,file=meshfilename, status='old',iostat=filestatus)
 if (filestatus .ne. 0) then
@@ -66,7 +77,7 @@ rewind(5)
 		do i=1,nnodes	! Then the node data starts and can be read
 			read(5,*)  node(i)%num, node(i)%x, node(i)%y, node(i)%z
 		end do
-		goto 12
+		goto 44
 	else
 		goto 10
 	endif
@@ -74,8 +85,7 @@ rewind(5)
 11 print *,'Reached the end of the file without being able to find the nodes'
 
 ! before reading the elements, we need to know about the boundary conditions:
-
-call readBC(bcfile, bc, nbc)
+44 call readBC(bcfile, bc, nbc)
 
 
 
@@ -95,6 +105,7 @@ call readBC(bcfile, bc, nbc)
 				read(line,*) dummy
 				allocate(element(i)%node(1))
 				element(i)%node(1)=node(dummy(4+ntags))
+				element(i)%ndof_local=2*1
 				! todo: insert name support for 1-node-elements
 			else if (element(i)%kind==1) then !kind 1 is a 2-node line element
 				allocate(dummy(3+ntags+2))
@@ -104,6 +115,7 @@ call readBC(bcfile, bc, nbc)
 				do j=1,2
 					element(i)%node(j)=node(dummy(3+ntags+j))
 				end do
+				element(i)%ndof_local=2*2
 			else if (element(i)%kind==3) then 	! kind 3 is a quadrilateral 4-node element
 				if (quadstart==0) then
 					quadstart = i
@@ -116,6 +128,7 @@ call readBC(bcfile, bc, nbc)
 				do j=1,4
 					element(i)%node(j)=node(dummy(3+ntags+j))
 				end do
+				element(i)%ndof_local=2*1
 			else 
 				print *,'This element type is not accepted by simpleFEM for now'
 			end if
@@ -139,14 +152,14 @@ contains
 subroutine appendbc(el)
 	implicit none
 	type(elementtype), intent(inout) :: el
-	integer :: idx
-
-	where (bc(:)%boundaryname==el%name)
-!		idx = index(bc(:)%boundaryname==el%name)
-		el%hasbc = .true.
-		el%bcnature = el%bcnature+bc%bcnature
-		el%bc(bc%bcnature,:)=bc%conditions
-		end where
+	integer :: i
+	do i = 1,nbc
+		if (bc(i)%boundaryname==el%name) then
+			el%hasbc = .true.
+			el%bcnature = el%bcnature+bc(i)%bcnature
+			el%bc(bc(i)%bcnature,:)=bc(i)%conditions(:)
+		end if
+	end do
 
 end subroutine appendbc
 

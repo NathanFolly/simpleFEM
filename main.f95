@@ -26,18 +26,19 @@ module mytypes
 
  	type bcobject
 		integer :: bcnature
-		character:: boundaryname
+		character*40:: boundaryname
 		real, dimension(3) ::conditions
 	end type bcobject
 
 	 type elementtype
 	 	! Right now, the node instances are stored within each element
 	 	! Pointers might be the better idea!!
+	 	integer :: ndof_local
 	 	integer :: num, kind
 	 	character*40 :: name
-	 	logical :: hasbc
-	 	integer :: bcnature
-	 	real, dimension(2,3) :: bc
+	 	logical :: hasbc=.false.
+	 	integer :: bcnature=0
+	 	real, dimension(2,3) :: bc=0
 	 	type(nodetype), allocatable :: node(:)
 	end type elementtype
 
@@ -79,6 +80,7 @@ PetscViewer 	viewer
 PetscReal 		petsckele(8,8), petscdummy ! We need these petsc type variables because 
 				!the MatSetValues subroutine refuses to produce the correct output receiving 
 				!anything else than petsc-variables
+PetscReal 		petforce(8)
 
 !!!!!!!
 
@@ -87,9 +89,10 @@ type(elementtype), allocatable, target :: element(:) ! essentially the mesh is j
 type(elementtype), pointer :: meshpointer(:)
 real, dimension(8,8) :: kele=0 ! This is the dummy element stiffness matrix that
 !gets updated by the subroutine generateesm
+real, allocatable :: fele(:) !element force vector
 character*50, parameter :: meshfile='testmesh_2D_box_quad.msh'
 
-integer :: ndof_nodal, ndof_global !The respective degrees of freedom 
+integer :: ndof_local=8, ndof_nodal, ndof_global !The respective degrees of freedom  
 
 integer :: quadstart=0, quadend=0, quadcounter=0, nnodes=0
 integer :: i,j,k, ii, jj
@@ -212,18 +215,40 @@ call MatSetFromOptions(Apet, ierrpet)
 call MatSetType(Apet,MATAIJ,ierrpet)
 call MatSetUp(Apet,ierrpet)
 
+! creating the vectors : one is created from scratch and then duplicated
+
+call VecCreate(PETSC_COMM_WORLD, u, ierrpet)
+call VecSetSizes(u, PETSC_DECIDE, ndof_global, ierrpet)
+call VecSetFromOptions(u, ierrpet)
+call VecDuplicate(u, b, ierrpet)
+! do we need this? : call VecDuplicate(xpet, upet, ierrpet)
+
+
+! setting the force vector to equal zero
+call VecSet(b,0,ierrpet)
 
 ! Assembling the matrix
 !! CAREFUL! petsc matrices use indices from 0 N-1 while fortran uses indices from 1 to N
 
-do k = quadstart, quadend
-	call generateesm(kele,element(k),properties)
-	petsckele=kele ! because the Matsetvalue subroutine only accepts PETSC-scalars / PETSC-vectors
-	do i=1,8
-		do j=1,8
-		call MatsetValue(Apet, globaldof(element(k),i)-1, globaldof(element(k),j)-1,petsckele(i,j),ADD_VALUES, ierrpet)
+do k = 1, size(element)
+	! natural boundary conditions (nodal forces) are written to the force vector
+	if ((element(k)%bcnature==1).or.(element(k)%bcnature==3)) then
+		call lumpstress(element(k), fele)
+		petforce=fele
+		do i=1,element(k)%ndof_local
+			rowmap(i)=globaldof(element(k),i)-1
 		end do
-	end do
+		call VecSetValues(b,size(fele),rowmap,petforce,ADD_VALUES,ierrpet)
+		
+	else if (element(k)%kind == 3) then
+		call generateesm(kele,element(k),properties)
+		petsckele=kele ! because the Matsetvalue subroutine only accepts PETSC-scalars / PETSC-vectors
+		do i=1,element(k)%ndof_local
+			do j=1,element(k)%ndof_local
+			call MatsetValue(Apet, globaldof(element(k),i)-1, globaldof(element(k),j)-1,petsckele(i,j),ADD_VALUES, ierrpet)
+			end do
+		end do
+	end if
 	! do i=1,8
 	! 	rowmap(i) = globaldof(element(k),i)
 	! 	columnmap(i) = globaldof(element(k),i)
@@ -241,17 +266,7 @@ call PetscViewerFileSetName(viewer, 'Kay', ierrpet)
 call MatView(Apet,viewer,ierrpet)
 
 
-! creating the vectors : one is created from scratch and then duplicated
 
-call VecCreate(PETSC_COMM_WORLD, u, ierrpet)
-call VecSetSizes(u, PETSC_DECIDE, ndof_global, ierrpet)
-call VecSetFromOptions(u, ierrpet)
-call VecDuplicate(u, b, ierrpet)
-! do we need this? : call VecDuplicate(xpet, upet, ierrpet)
-
-
-! setting the force vector
-call VecSet(b,0,ierrpet)
 
 ! creating the linear solver
 call KSPCreate(PETSC_COMM_WORLD,ksppet,ierrpet)
@@ -331,7 +346,30 @@ function globaldof(element, localdof) ! returns the global degree of freedom in 
 
 end function globaldof
 
+subroutine lumpstress(element, forcevector)
+	! reads the natural BC on an element(stress) and lumps it to the nodes 
+	real, allocatable, intent(inout) :: forcevector(:)
+	type(elementtype), intent(in) :: element
+	integer :: i
+!	real :: nodalforcex, nodalforcey, nodalforcez
+	if (allocated(forcevector).and.(size(forcevector).ne.element%ndof_local)) then 
+		deallocate(forcevector)
+		allocate(forcevector(element%ndof_local))
+	else if (.not. allocated(forcevector)) then
+		allocate(forcevector(element%ndof_local))
 
+	end if
+	! stress is uniform over an element -> take the stress, multiply by the appropriate node distance, divide by number of nodes
+	if (ndof_nodal==2) then
+		do i = 1, size(element%node)-1
+			forcevector(2*i-1) = forcevector(2*i-1)+element%bc(1,1)*abs(element%node(i)%x-element%node(i+1)%x)/2.
+			forcevector(2*i-1) = forcevector(2*i-1)+element%bc(1,2)*abs(element%node(i)%y-element%node(i+1)%y)/2.
+			forcevector(2*(i+1)-1) = forcevector(2*(i+1)-1)+element%bc(1,1)*abs(element%node(i)%x-element%node(i+1)%x)/2.
+			forcevector(2*(i+1)-1) = forcevector(2*(i+1)-1)+element%bc(1,2)*abs(element%node(i)%y-element%node(i+1)%y)/2.
+		end do
+	end if
+	print *,forcevector
+end subroutine lumpstress
 
 
 ! 
