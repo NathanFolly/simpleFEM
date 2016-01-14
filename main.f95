@@ -24,11 +24,20 @@ module mytypes
 		type(statetype) :: state
 	 end type nodetype
 
+ 	type bcobject
+		integer :: bcnature
+		character:: boundaryname
+		real, dimension(3) ::conditions
+	end type bcobject
+
 	 type elementtype
 	 	! Right now, the node instances are stored within each element
 	 	! Pointers might be the better idea!!
 	 	integer :: num, kind
 	 	character*40 :: name
+	 	logical :: hasbc
+	 	integer :: bcnature
+	 	real, dimension(2,3) :: bc
 	 	type(nodetype), allocatable :: node(:)
 	end type elementtype
 
@@ -74,7 +83,7 @@ PetscReal 		petsckele(8,8), petscdummy ! We need these petsc type variables beca
 !!!!!!!
 
 
-type(elementtype), allocatable, target :: mesh(:) ! essentially the mesh is just an array of elements
+type(elementtype), allocatable, target :: element(:) ! essentially the mesh is just an array of elements
 type(elementtype), pointer :: meshpointer(:)
 real, dimension(8,8) :: kele=0 ! This is the dummy element stiffness matrix that
 !gets updated by the subroutine generateesm
@@ -90,10 +99,10 @@ integer, dimension(8) :: rowmap, columnmap !vectors mapping the local dof to the
 interface	! need this interface so that we can pass an allocatable array to 
 			!subroutine readmesh and allocate it there according to the number 
 			!of elements which we find in the meshfile
-	subroutine readmesh(mesh, meshfilename, quadstart, quadend, quadcounter, nnodes)
+	subroutine readmesh(element, meshfilename, quadstart, quadend, quadcounter, nnodes)
 		use mytypes
 		implicit none
-		type(elementtype), allocatable, intent(inout):: mesh(:)
+		type(elementtype), allocatable, intent(inout):: element(:)
 		integer, intent(inout) :: nnodes
 		character*50, intent(in) :: meshfilename
 		integer, intent(inout) :: quadstart, quadend, quadcounter
@@ -124,9 +133,9 @@ end interface
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 ! We read in the mesh created by the external program gmsh
-meshpointer=>mesh(:)
+meshpointer=>element(:)
 
-call readmesh(mesh, meshfile, quadstart, quadend, quadcounter, nnodes)
+call readmesh(element, meshfile, quadstart, quadend, quadcounter, nnodes)
 
 ! We know what problem we want to solve (planar strain) so we know the number of degrees of freedom per node:
 ndof_nodal= 2
@@ -208,17 +217,16 @@ call MatSetUp(Apet,ierrpet)
 !! CAREFUL! petsc matrices use indices from 0 N-1 while fortran uses indices from 1 to N
 
 do k = quadstart, quadend
-	print *, mesh(k)%name
-	call generateesm(kele,mesh(k),properties)
+	call generateesm(kele,element(k),properties)
 	petsckele=kele ! because the Matsetvalue subroutine only accepts PETSC-scalars / PETSC-vectors
 	do i=1,8
 		do j=1,8
-		call MatsetValue(Apet, globaldof(mesh(k),i)-1, globaldof(mesh(k),j)-1,petsckele(i,j),ADD_VALUES, ierrpet)
+		call MatsetValue(Apet, globaldof(element(k),i)-1, globaldof(element(k),j)-1,petsckele(i,j),ADD_VALUES, ierrpet)
 		end do
 	end do
 	! do i=1,8
-	! 	rowmap(i) = globaldof(mesh(k),i)
-	! 	columnmap(i) = globaldof(mesh(k),i)
+	! 	rowmap(i) = globaldof(element(k),i)
+	! 	columnmap(i) = globaldof(element(k),i)
 	! end do
 	! call MatSetValues(Apet,8,rowmap-1,8,columnmap-1,petsckele,ADD_VALUES,ierrpet)	
 end do
@@ -322,6 +330,8 @@ function globaldof(element, localdof) ! returns the global degree of freedom in 
 	globaldof=2*globalnodenum-(2-nodedof)
 
 end function globaldof
+
+
 
 
 ! 

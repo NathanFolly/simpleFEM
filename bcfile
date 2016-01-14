@@ -1,0 +1,11 @@
+! This is a prototype file used to append boundary conditions to the simpleFEM Program
+! As simpleFEM is programmed in fortran, an exclamationmark is used to identify a comment here too
+! The file is tab seperated.
+! The format is:  nametag of affected boundary | BC type (1=natural, 2=essential) | value in x | value in y | value in z
+
+$start
+bottom		2	0E1	0E1
+top		1	0E1	100E6
+leftside	2	0E1	0E1
+rightside	2	0E1	0E1
+$end

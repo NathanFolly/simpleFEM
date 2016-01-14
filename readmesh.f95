@@ -4,16 +4,22 @@
 ! It reads a mesh file created by the gmsh program and translates it 
 !into a format usable by simpleFEM
 
+! since we create each element here anyway, we will simply add the boundaryconditions as well
 
 
 
-subroutine readmesh(mesh, meshfilename, quadstart, quadend, quadcounter, nnodes)
+subroutine readmesh(element, meshfilename, quadstart, quadend, quadcounter, nnodes)
 use mytypes
 implicit none
-type(elementtype), allocatable, intent(inout):: mesh(:)
+type(elementtype), allocatable, intent(inout):: element(:)
 integer, intent(inout) :: nnodes
 character*50, intent(in) :: meshfilename
 integer, intent(inout) :: quadstart, quadend, quadcounter! this variable is used to count the number of quad type elements
+
+! for the boundary conditions
+type(bcobject), allocatable :: bc(:)
+character*20, parameter :: bcfile='bcfile'
+integer :: nbc
 
 type nametagtype
 	integer :: objectdim
@@ -67,47 +73,53 @@ rewind(5)
 
 11 print *,'Reached the end of the file without being able to find the nodes'
 
+! before reading the elements, we need to know about the boundary conditions:
+
+call readBC(bcfile, bc, nbc)
+
+
 
 12 read(5,'(A)', end =13) line
  	if (index(line, '$Elements').ne. 0) then !here the Elements start
 		read(5,*,iostat=readstatus)  nelements	! the next line states how many elements there are
-		allocate(mesh(nelements))
+		allocate(element(nelements))
 		do i=1,nelements	! Then the element data starts and can be read
 			read(5,'(A)') line
 			read(line,*)  linehead
 			eltype=linehead(2)
 			ntags=linehead(3)
-			mesh(i)%num=linehead(1)
-			mesh(i)%kind=linehead(2)
-			if (mesh(i)%kind==15) then !kind 15 is a one-node element
+			element(i)%num=linehead(1)
+			element(i)%kind=linehead(2)
+			if (element(i)%kind==15) then !kind 15 is a one-node element
 				allocate(dummy(3+ntags+1))
 				read(line,*) dummy
-				allocate(mesh(i)%node(1))
-				mesh(i)%node(1)=node(dummy(4+ntags))
+				allocate(element(i)%node(1))
+				element(i)%node(1)=node(dummy(4+ntags))
 				! todo: insert name support for 1-node-elements
-			else if (mesh(i)%kind==1) then !kind 1 is a 2-node line element
+			else if (element(i)%kind==1) then !kind 1 is a 2-node line element
 				allocate(dummy(3+ntags+2))
 				read(line,*) dummy
-				mesh(i)%name=taglist(dummy(4))
-				allocate(mesh(i)%node(2))
+				element(i)%name=taglist(dummy(4))
+				allocate(element(i)%node(2))
 				do j=1,2
-					mesh(i)%node(j)=node(dummy(3+ntags+j))
+					element(i)%node(j)=node(dummy(3+ntags+j))
 				end do
-			else if (mesh(i)%kind==3) then 	! kind 3 is a quadrilateral 4-node element
+			else if (element(i)%kind==3) then 	! kind 3 is a quadrilateral 4-node element
 				if (quadstart==0) then
 					quadstart = i
 				endif
 				quadcounter=quadcounter+1
 				allocate(dummy(3+ntags+4))
 				read(line,*)  dummy
-				mesh(i)%name=taglist(dummy(4))
-				allocate(mesh(i)%node(4))
+				element(i)%name=taglist(dummy(4))
+				allocate(element(i)%node(4))
 				do j=1,4
-					mesh(i)%node(j)=node(dummy(3+ntags+j))
+					element(i)%node(j)=node(dummy(3+ntags+j))
 				end do
 			else 
 				print *,'This element type is not accepted by simpleFEM for now'
 			end if
+			call appendbc(element(i))
 			quadend=quadstart+quadcounter-1
 			deallocate(dummy)
 		end do
@@ -121,6 +133,22 @@ rewind(5)
 14 close(5)
 
 print *, 'successfully read the mesh file'
+
+
+contains 
+subroutine appendbc(el)
+	implicit none
+	type(elementtype), intent(inout) :: el
+	integer :: idx
+
+	where (bc(:)%boundaryname==el%name)
+!		idx = index(bc(:)%boundaryname==el%name)
+		el%hasbc = .true.
+		el%bcnature = el%bcnature+bc%bcnature
+		el%bc(bc%bcnature,:)=bc%conditions
+		end where
+
+end subroutine appendbc
 
 end subroutine readmesh
 
