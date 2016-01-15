@@ -75,6 +75,9 @@ end subroutine gaussint
 
 ! Those functions are copy-pasted from the Maple program and represent the entries of the element stiffness matrix before integration
 function k(xx,yy,xi,eta,E,nu)
+
+     !!!!!!!!! THIS IS FOR PLAIN STRAIN !!!!!!!!
+
 	implicit none
      real, dimension(8,8) :: k
 	real, dimension(4):: xx, yy ! Those are the coordinates of the points involved

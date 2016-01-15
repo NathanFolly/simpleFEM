@@ -75,6 +75,7 @@ PetscInt 		ipet, npet, colpet(3), itspet, i1pet, i2pet, i3pet
 PetscBool		flgpet
 PetscMPIInt		sizepet, rankpet
 PetscScalar		nonepet, onepet, valuepet(3)
+PetscScalar, allocatable:: disppet(:)
 
 PetscViewer 	viewer
 PetscReal 		petsckele(8,8), petscdummy ! We need these petsc type variables because 
@@ -90,6 +91,9 @@ type(elementtype), pointer :: meshpointer(:)
 real, dimension(8,8) :: kele=0 ! This is the dummy element stiffness matrix that
 !gets updated by the subroutine generateesm
 real, allocatable :: fele(:) !element force vector
+real, allocatable :: displacement(:) ! Vector to store displacements in for postprocessing after the petsc-vector is distroyed
+integer :: vecsize !needed for allocating the displacement(:) array
+
 character*50, parameter :: meshfile='testmesh_2D_box_quad.msh'
 
 integer :: ndof_local=8, ndof_nodal, ndof_global !The respective degrees of freedom  
@@ -287,6 +291,7 @@ call KSPSetTolerances(ksppet,tolpet, PETSC_DEFAULT_REAL,PETSC_DEFAULT_REAL,PETSC
 call KSPSetFromOptions(ksppet,ierrpet)
 
 !!!! now we solve:!!!!!!
+
 call KSPSolve(ksppet,b,u,ierrpet)
 
 
@@ -300,9 +305,9 @@ call KSPView(ksppet, PETSC_VIEWER_STDOUT_WORLD, ierrpet)
 
 ! wont work becaus we have no exact solution:  call VecAXPY(xpet,nonepet, upet, ierrpet)
 ! we could check for the residual with that :   call VecNorm(xpet,NORM_2, normpet, ierrpet)
-call KSPGetIterationNumber(ksppet, itspet, ierrpet)
+!call KSPGetIterationNumber(ksppet, itspet, ierrpet)
 ! if (normpet .gt. 1.e-12) then
- 	write(6,100) normpet, itspet
+! 	write(6,100) normpet, itspet
 ! else
 ! 	write(6,200) itspet
 ! endif
@@ -311,6 +316,18 @@ call KSPGetIterationNumber(ksppet, itspet, ierrpet)
 200 format('Norm of error < 1.e-12, Iterations 0 ', i5)
 
 
+
+
+call VecView(u, PETSC_VIEWER_STDOUT_WORLD, ierrpet)
+! copying the displacements to a vector that lives outside petsc:
+call VecGetSize(u, vecsize,ierrpet)
+
+allocate(disppet(vecsize))
+!idxpet = (/(i,i=0,vecsize-1)/)
+sizepet = vecsize
+print *, vecsize
+print *, sizepet
+call VecGetValues(u,sizepet,(/(i,i=0,vecsize-1)/),disppet, ierrpet)
 
 
 
@@ -324,6 +341,12 @@ call KSPDestroy(ksppet, ierrpet)
 call PetscFinalize(ierrpet)
 
 !!!!!!!!!!!!!!!!!!! End of the petsc part
+
+
+!!!!!Begin the postprocessing /  calculating the stresses
+
+
+
 
 
 
