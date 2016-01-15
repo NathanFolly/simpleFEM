@@ -256,6 +256,9 @@ do k = 1, size(element)
 	! call MatSetValues(Apet,8,rowmap-1,8,columnmap-1,petsckele,ADD_VALUES,ierrpet)	
 end do
 
+! The necessary calls to complete the assembley of Vectors an matrices
+call VecAssemblyBegin(b, ierrpet)
+call VecAssemblyEnd(b, ierrpet)
 call MatAssemblyBegin(Apet, MAT_FINAL_ASSEMBLY, ierrpet)
 call MatAssemblyEnd(Apet, MAT_FINAL_ASSEMBLY, ierrpet)
 
@@ -292,13 +295,14 @@ call KSPSolve(ksppet,b,u,ierrpet)
 
 call KSPView(ksppet, PETSC_VIEWER_STDOUT_WORLD, ierrpet)
 
+
 !!!! check solution and cleanup
 
 ! wont work becaus we have no exact solution:  call VecAXPY(xpet,nonepet, upet, ierrpet)
 ! we could check for the residual with that :   call VecNorm(xpet,NORM_2, normpet, ierrpet)
 call KSPGetIterationNumber(ksppet, itspet, ierrpet)
 ! if (normpet .gt. 1.e-12) then
-! 	write(6,100) normpet, itspet
+ 	write(6,100) normpet, itspet
 ! else
 ! 	write(6,200) itspet
 ! endif
@@ -359,16 +363,16 @@ subroutine lumpstress(element, forcevector)
 		allocate(forcevector(element%ndof_local))
 
 	end if
+	forcevector =0
 	! stress is uniform over an element -> take the stress, multiply by the appropriate node distance, divide by number of nodes
 	if (ndof_nodal==2) then
 		do i = 1, size(element%node)-1
-			forcevector(2*i-1) = forcevector(2*i-1)+element%bc(1,1)*abs(element%node(i)%x-element%node(i+1)%x)/2.
-			forcevector(2*i-1) = forcevector(2*i-1)+element%bc(1,2)*abs(element%node(i)%y-element%node(i+1)%y)/2.
-			forcevector(2*(i+1)-1) = forcevector(2*(i+1)-1)+element%bc(1,1)*abs(element%node(i)%x-element%node(i+1)%x)/2.
-			forcevector(2*(i+1)-1) = forcevector(2*(i+1)-1)+element%bc(1,2)*abs(element%node(i)%y-element%node(i+1)%y)/2.
+			forcevector(2*i-1) = forcevector(2*i-1)+element%bc(1,1)*abs(element%node(i)%y-element%node(i+1)%y)/2.
+			forcevector(2*i) = forcevector(2*i)+element%bc(1,2)*abs(element%node(i)%x-element%node(i+1)%x)/2.
+			forcevector(2*(i+1)-1) = forcevector(2*(i+1)-1)+element%bc(1,1)*abs(element%node(i)%y-element%node(i+1)%y)/2.
+			forcevector(2*(i+1)) = forcevector(2*(i+1))+element%bc(1,2)*abs(element%node(i)%x-element%node(i+1)%x)/2.
 		end do
 	end if
-	print *,forcevector
 end subroutine lumpstress
 
 

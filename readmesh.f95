@@ -128,7 +128,7 @@ rewind(5)
 				do j=1,4
 					element(i)%node(j)=node(dummy(3+ntags+j))
 				end do
-				element(i)%ndof_local=2*1
+				element(i)%ndof_local=2*size(element(i)%node)
 			else 
 				print *,'This element type is not accepted by simpleFEM for now'
 			end if
