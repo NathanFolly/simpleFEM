@@ -1,5 +1,5 @@
-GFORTRAN module version '10' created from main.f95
-MD5:c6077ffcddd2df27cb7e0a70ee90a945 -- If you edit this, you'll get what you deserve.
+GFORTRAN module version '9' created from main.f95
+MD5:23c7d5eccee30e94b8b7bce7c58a2c0c -- If you edit this, you'll get what you deserve.
 
 (() () () () () () () () () () () () () () () () () () () () () () () ()
 () () ())
@@ -7,7 +7,7 @@ MD5:c6077ffcddd2df27cb7e0a70ee90a945 -- If you edit this, you'll get what you de
 ()
 
 (('bcobject' 'mytypes' 2) ('elementtype' 'mytypes' 3) ('nodetype'
-'mytypes' 4) ('propertytype' 'mytypes' 5) ('statetype' 'mytypes' 6))
+'mytypes' 4) ('statetype' 'mytypes' 5) ('propertytype' 'mytypes' 6))
 
 ()
 
@@ -45,11 +45,11 @@ UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS (CONSTANT (INTEGER 4 0 0 0 INTEGER ())
 INTEGER 4 0 0 0 INTEGER ()) 0 '1') (CONSTANT (INTEGER 4 0 0 0 INTEGER ())
 0 '2') (CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '1') (CONSTANT (INTEGER
 4 0 0 0 INTEGER ()) 0 '3')) (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC
-UNKNOWN UNKNOWN 0 0 DIMENSION) UNKNOWN-ACCESS (CONSTANT (REAL 4 0 0 0
-REAL ()) 0 '0.0000000@0')) (17 'node' (DERIVED 4 0 0 0 DERIVED ()) (1 0
+UNKNOWN UNKNOWN 0 0 DIMENSION) UNKNOWN-ACCESS (CONSTANT (INTEGER 4 0 0 0
+INTEGER ()) 0 '0')) (17 'node' (DERIVED 4 0 0 0 DERIVED ()) (1 0
 DEFERRED () ()) (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN
 0 0 ALLOCATABLE DIMENSION) UNKNOWN-ACCESS (STRUCTURE (DERIVED 4 0 0 0
-DERIVED ()) 0 ((() ()) (() ()) (() ()) (() ()) ((STRUCTURE (DERIVED 6 0
+DERIVED ()) 0 ((() ()) (() ()) (() ()) (() ()) ((STRUCTURE (DERIVED 5 0
 0 0 DERIVED ()) 0 ((() ()) (() ()) (() ()) ((NULL (REAL 4 0 0 0 REAL ())
 0) ()) ((NULL (REAL 4 0 0 0 REAL ()) 0) ())) ()) ())) ()))) PUBLIC (() ()
 () ()) () 0 0 69809156)
@@ -61,18 +61,18 @@ UNKNOWN-PROC UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS ()) (19 'x' (REAL 4 0 0
 0) UNKNOWN-ACCESS ()) (20 'y' (REAL 4 0 0 0 REAL ()) () (UNKNOWN-FL
 UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS ()) (21
 'z' (REAL 4 0 0 0 REAL ()) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC
-UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS ()) (22 'state' (DERIVED 6 0 0 0
+UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS ()) (22 'state' (DERIVED 5 0 0 0
 DERIVED ()) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0
-0) UNKNOWN-ACCESS (STRUCTURE (DERIVED 6 0 0 0 DERIVED ()) 0 ((() ()) (()
+0) UNKNOWN-ACCESS (STRUCTURE (DERIVED 5 0 0 0 DERIVED ()) 0 ((() ()) (()
 ()) (() ()) ((NULL (REAL 4 0 0 0 REAL ()) 0) ()) ((NULL (REAL 4 0 0 0
 REAL ()) 0) ())) ()))) PUBLIC (() () () ()) () 0 0 6136590)
-5 'Propertytype' 'mytypes' '' 1 ((DERIVED UNKNOWN-INTENT UNKNOWN-PROC
+6 'Propertytype' 'mytypes' '' 1 ((DERIVED UNKNOWN-INTENT UNKNOWN-PROC
 UNKNOWN UNKNOWN 0 0) (UNKNOWN 0 0 0 0 UNKNOWN ()) 0 0 () () 0 ((23 'e' (
 REAL 4 0 0 0 REAL ()) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN
 UNKNOWN 0 0) UNKNOWN-ACCESS ()) (24 'nu' (REAL 4 0 0 0 REAL ()) () (
 UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0)
 UNKNOWN-ACCESS ())) PUBLIC (() () () ()) () 0 0 16158881)
-6 'Statetype' 'mytypes' '' 1 ((DERIVED UNKNOWN-INTENT UNKNOWN-PROC
+5 'Statetype' 'mytypes' '' 1 ((DERIVED UNKNOWN-INTENT UNKNOWN-PROC
 UNKNOWN UNKNOWN 0 0 ALLOC_COMP) (UNKNOWN 0 0 0 0 UNKNOWN ()) 0 0 () () 0
 ((25 'ux' (REAL 4 0 0 0 REAL ()) () (UNKNOWN-FL UNKNOWN-INTENT
 UNKNOWN-PROC UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS ()) (26 'uy' (REAL 4 0
@@ -85,28 +85,25 @@ UNKNOWN-ACCESS ()) (29 'strainvector' (REAL 4 0 0 0 REAL ()) (1 0
 DEFERRED () ()) (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN
 0 0 ALLOCATABLE DIMENSION) UNKNOWN-ACCESS ())) PUBLIC (() () () ()) () 0
 0 63008313)
-30 '__convert_i4_r4' '(intrinsic)' '' 1 ((PROCEDURE UNKNOWN-INTENT
-UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 FUNCTION ELEMENTAL PURE) (REAL 4 0 0 0
-REAL ()) 0 0 () () 30 () () () 0 0)
-31 'bcobject' 'mytypes' '' 1 ((PROCEDURE UNKNOWN-INTENT UNKNOWN-PROC
+30 'bcobject' 'mytypes' '' 1 ((PROCEDURE UNKNOWN-INTENT UNKNOWN-PROC
 DECL UNKNOWN 0 0 FUNCTION GENERIC) (REAL 4 0 0 0 REAL ()) 0 0 () () 0 ()
 () () 0 0)
-32 'elementtype' 'mytypes' '' 1 ((PROCEDURE UNKNOWN-INTENT UNKNOWN-PROC
+31 'elementtype' 'mytypes' '' 1 ((PROCEDURE UNKNOWN-INTENT UNKNOWN-PROC
 DECL UNKNOWN 0 0 FUNCTION GENERIC) (REAL 4 0 0 0 REAL ()) 0 0 () () 0 ()
 () () 0 0)
-33 'mytypes' 'mytypes' '' 1 ((MODULE UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN
+32 'mytypes' 'mytypes' '' 1 ((MODULE UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN
 UNKNOWN 0 0) (UNKNOWN 0 0 0 0 UNKNOWN ()) 0 0 () () 0 () () () 0 0)
-34 'nodetype' 'mytypes' '' 1 ((PROCEDURE UNKNOWN-INTENT UNKNOWN-PROC
+33 'nodetype' 'mytypes' '' 1 ((PROCEDURE UNKNOWN-INTENT UNKNOWN-PROC
 DECL UNKNOWN 0 0 FUNCTION GENERIC) (INTEGER 4 0 0 0 INTEGER ()) 0 0 () ()
 0 () () () 0 0)
-35 'propertytype' 'mytypes' '' 1 ((PROCEDURE UNKNOWN-INTENT UNKNOWN-PROC
+34 'propertytype' 'mytypes' '' 1 ((PROCEDURE UNKNOWN-INTENT UNKNOWN-PROC
 DECL UNKNOWN 0 0 FUNCTION GENERIC) (REAL 4 0 0 0 REAL ()) 0 0 () () 0 ()
 () () 0 0)
-36 'statetype' 'mytypes' '' 1 ((PROCEDURE UNKNOWN-INTENT UNKNOWN-PROC
+35 'statetype' 'mytypes' '' 1 ((PROCEDURE UNKNOWN-INTENT UNKNOWN-PROC
 DECL UNKNOWN 0 0 FUNCTION GENERIC) (REAL 4 0 0 0 REAL ()) 0 0 () () 0 ()
 () () 0 0)
 )
 
-('Bcobject' 0 2 'Elementtype' 0 3 'Nodetype' 0 4 'Propertytype' 0 5
-'Statetype' 0 6 '__convert_i4_r4' 0 30 'bcobject' 0 31 'elementtype' 0
-32 'mytypes' 0 33 'nodetype' 0 34 'propertytype' 0 35 'statetype' 0 36)
+('Bcobject' 0 2 'Elementtype' 0 3 'Nodetype' 0 4 'Propertytype' 0 6
+'Statetype' 0 5 'bcobject' 0 30 'elementtype' 0 31 'mytypes' 0 32
+'nodetype' 0 33 'propertytype' 0 34 'statetype' 0 35)

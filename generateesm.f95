@@ -7,7 +7,7 @@
 subroutine generateesm(kk, element, property)
 
 use mytypes
-
+implicit none
 
 type(elementtype), intent(in) :: element
 real, dimension(8,8), intent(inout)::kk
@@ -17,7 +17,7 @@ type(nodetype), dimension(4) :: node
 real, dimension(8) :: localcoords
 real, dimension(2,2) :: Jacoby
 real, dimension(4) :: xx, yy
-
+integer :: i, j
 
 do i=1,4
      xx(i)=element%node(i)%x
