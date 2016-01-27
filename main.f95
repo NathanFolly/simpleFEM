@@ -14,7 +14,10 @@ module mytypes
 	! So and element centered data structure seems to make sense
 
 	type statetype
-		real :: sigx, sigy, tau, epsx, epsy, epsxy
+		real ::  ux, uy, uz ! the displacements
+		real, allocatable :: stressvector(:) !stresstensor as vector, in the case of 2D: (sigx, sigy, tauxy)
+		real, allocatable :: strainvector(:) !Straintensor as vector, in the case of 2D: (epsx, epsy, gamm=2*epsxy)
+		!todo: make all these pointers 	
 	end type statetype
 
 
@@ -92,6 +95,7 @@ real, dimension(8,8) :: kele=0 ! This is the dummy element stiffness matrix that
 !gets updated by the subroutine generateesm
 real, allocatable :: fele(:) !element force vector
 real, allocatable :: displacement(:) ! Vector to store displacements in for postprocessing after the petsc-vector is distroyed
+real, allocatable :: stressvector(:)
 integer :: vecsize !needed for allocating the displacement(:) array
 
 character*50, parameter :: meshfile='testmesh_2D_box_quad.msh'
@@ -329,6 +333,9 @@ print *, vecsize
 print *, sizepet
 call VecGetValues(u,sizepet,(/(i,i=0,vecsize-1)/),disppet, ierrpet)
 
+!then assigning the displacements to the relevant nodes
+call assigndisplacements(disppet,element)
+
 
 
 ! Freeing workspace:
@@ -345,6 +352,10 @@ call PetscFinalize(ierrpet)
 
 !!!!!Begin the postprocessing /  calculating the stresses
 
+!calling the subroutine for stress recovery:
+
+
+	call recoverstress(element(15),properties)
 
 
 
@@ -398,6 +409,17 @@ subroutine lumpstress(element, forcevector)
 	end if
 end subroutine lumpstress
 
+subroutine assigndisplacements(displacements, element)
+	real(kind=8), intent(in) :: displacements(:)
+	type(elementtype) :: element(:)
+
+	do i=1,size(element)
+		do j=1,size(element(i)%node)
+		element(i)%node(j)%state%ux=displacements(globaldof(element(i),2*j-1))
+		element(i)%node(j)%state%uy=displacements(globaldof(element(i),2*j))
+		end do
+	end do
+end subroutine assigndisplacements
 
 ! 
 end program main

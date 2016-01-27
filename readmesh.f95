@@ -127,6 +127,9 @@ rewind(5)
 				allocate(element(i)%node(4))
 				do j=1,4
 					element(i)%node(j)=node(dummy(3+ntags+j))
+					! also allocate the stress and strain vectors for a 2-D case
+					allocate(element(i)%node(j)%state%stressvector(3))
+					allocate(element(i)%node(j)%state%stressvector(3))
 				end do
 				element(i)%ndof_local=2*size(element(i)%node)
 			else 
