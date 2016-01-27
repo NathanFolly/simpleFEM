@@ -1,7 +1,7 @@
 ! Subroutine that permits to recover the stress from the displacements that have 
 ! been calculated.
 ! Uses the more rudimentary approach (1) according to:
-! http://www.colorado.edu/!engineering/CAS/courses.d/IFEM.d/IFEM.Ch28.d/IFEM.Ch28.pdf 
+! http://www.colorado.edu/engineering/CAS/courses.d/IFEM.d/IFEM.Ch28.d/IFEM.Ch28.pdf 
 subroutine recoverstress(element, property, displacementvector, stressvector)
 use mytypes
 implicit none
