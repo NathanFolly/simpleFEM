@@ -8,10 +8,11 @@
 
 
 
-subroutine readmesh(element, meshfilename, quadstart, quadend, quadcounter, nnodes)
+subroutine readmesh(element,node, meshfilename, quadstart, quadend, quadcounter, nnodes)
 use mytypes
 implicit none
 type(elementtype), allocatable, intent(inout):: element(:)
+type(nodetype), allocatable, intent(inout) :: node(:)
 integer, intent(inout) :: nnodes
 character*50, intent(in) :: meshfilename
 integer, intent(inout) :: quadstart, quadend, quadcounter! this variable is used to count the number of quad type elements
@@ -31,7 +32,7 @@ type(nametagtype), allocatable :: nametag(:)
 character*40, allocatable :: taglist(:) 
 
 
-type(nodetype), allocatable :: node(:)
+
 integer:: filestatus, nelements, readstatus, eltype, ntags, nphysnames
 integer, allocatable:: eltags(:)
 integer:: i,j
@@ -128,7 +129,7 @@ rewind(5)
 				do j=1,4
 					element(i)%node(j)=node(dummy(3+ntags+j))
 					! also allocate the stress and strain vectors for a 2-D case
-					allocate(element(i)%node(j)%state%stressvector(3))
+					allocate(element(i)%node(j)%state%strainvector(3))
 					allocate(element(i)%node(j)%state%stressvector(3))
 				end do
 				element(i)%ndof_local=2*size(element(i)%node)

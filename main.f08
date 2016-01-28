@@ -17,6 +17,7 @@ module mytypes
 		real ::  ux, uy, uz ! the displacements
 		real, allocatable :: stressvector(:) !stresstensor as vector, in the case of 2D: (sigx, sigy, tauxy)
 		real, allocatable :: strainvector(:) !Straintensor as vector, in the case of 2D: (epsx, epsy, gamm=2*epsxy)
+		real :: vmises
 		!todo: make all these pointers 	
 	end type statetype
 
@@ -90,7 +91,7 @@ PetscReal 		petforce(8)
 
 
 type(elementtype), allocatable, target :: element(:) ! essentially the mesh is just an array of elements
-type(elementtype), pointer :: meshpointer(:)
+type(nodetype), allocatable :: node(:)
 real, dimension(8,8) :: kele=0 ! This is the dummy element stiffness matrix that
 !gets updated by the subroutine generateesm
 real, allocatable :: fele(:) !element force vector
@@ -99,6 +100,8 @@ real, allocatable :: stressvector(:)
 integer :: vecsize !needed for allocating the displacement(:) array
 
 character*50, parameter :: meshfile='testmesh_2D_box_quad.msh'
+character*50, parameter :: ppfile='postprocessingfile.msh'
+character*100 :: cmdmessage='' ! used when we pass a command to the system
 
 integer :: ndof_local=8, ndof_nodal, ndof_global !The respective degrees of freedom  
 
@@ -107,13 +110,17 @@ integer :: i,j,k, ii, jj
 
 integer, dimension(8) :: rowmap, columnmap !vectors mapping the local dof to the global dof
 
+
+integer :: filestatus
+
 interface	! need this interface so that we can pass an allocatable array to 
 			!subroutine readmesh and allocate it there according to the number 
 			!of elements which we find in the meshfile
-	subroutine readmesh(element, meshfilename, quadstart, quadend, quadcounter, nnodes)
+	subroutine readmesh(element, node, meshfilename, quadstart, quadend, quadcounter, nnodes)
 		use mytypes
 		implicit none
 		type(elementtype), allocatable, intent(inout):: element(:)
+		type(nodetype), allocatable, intent(inout):: node(:)
 		integer, intent(inout) :: nnodes
 		character*50, intent(in) :: meshfilename
 		integer, intent(inout) :: quadstart, quadend, quadcounter
@@ -143,10 +150,16 @@ end interface
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-! We read in the mesh created by the external program gmsh
-meshpointer=>element(:)
+! We make a copy of the original meshfile to write the data into for external postprocessing
+! unfortunately, if we make system calls in the postprocessing section of 
+! this file, they do not seem to work. The problem might be PETSc
 
-call readmesh(element, meshfile, quadstart, quadend, quadcounter, nnodes)
+call execute_command_line('cp '//meshfile//' '//ppfile, wait=.false.)
+
+
+! We read in the mesh created by the external program gmsh
+
+call readmesh(element,node, meshfile, quadstart, quadend, quadcounter, nnodes)
 
 ! We know what problem we want to solve (planar strain) so we know the number of degrees of freedom per node:
 ndof_nodal= 2
@@ -322,15 +335,13 @@ call KSPView(ksppet, PETSC_VIEWER_STDOUT_WORLD, ierrpet)
 
 
 
-call VecView(u, PETSC_VIEWER_STDOUT_WORLD, ierrpet)
+! call VecView(u, PETSC_VIEWER_STDOUT_WORLD, ierrpet)
 ! copying the displacements to a vector that lives outside petsc:
 call VecGetSize(u, vecsize,ierrpet)
 
 allocate(disppet(vecsize))
 !idxpet = (/(i,i=0,vecsize-1)/)
 sizepet = vecsize
-print *, vecsize
-print *, sizepet
 call VecGetValues(u,sizepet,(/(i,i=0,vecsize-1)/),disppet, ierrpet)
 
 !then assigning the displacements to the relevant nodes
@@ -354,11 +365,39 @@ call PetscFinalize(ierrpet)
 
 !calling the subroutine for stress recovery:
 
+do i=1,size(element)
+	if (element(i)%kind==3) then
+		call recoverstress(element(i),properties)
+	end if
+end do
 
-	call recoverstress(element(15),properties)
 
+!writing the  data to the meshfile
 
+open(5,file=ppfile, position='append', status='old',iostat=filestatus)
 
+if (filestatus .ne. 0) then
+	print *,'Error reading the post processing file . Fortran error Code:', filestatus
+	call exit()
+end if
+
+write(5,'(A)') '$NodeData'
+write(5,*) 1 !write the number of string tags
+write(5,'(A)') 'Von Mises Stress' !the string tag
+write(5,*) 1 ! Wehave one tag of type real (the point in time)
+write(5,*) 0.0
+write(5,*) 3 ! Three integer tags
+write(5,*) 0 !Time step
+
+write(5,*) 1 ! 1-component scalar field
+write(5,*) nnodes ! number of associated nodal values
+
+do i =1,nnodes
+	write(5,*) node(i)%num
+end do	
+write(5,'(A)') '$EndNodeData'
+
+close(5)
 
 
 

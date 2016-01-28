@@ -14,6 +14,7 @@ type(propertytype),intent(in) :: property
 
 real, allocatable:: ux(:), uy(:), x(:), y(:)
 real, dimension(3):: stressvector=0, strainvector=0 ! this is for 2-D cases only
+real:: vmises
 
 real :: eta=0, xi=0
 
@@ -24,7 +25,7 @@ real, dimension(3,3) :: A=0
 
 real:: E=0, nu=0
 
-integer :: i
+integer :: i, j
 
 !get the properties
 E= property%E
@@ -40,8 +41,8 @@ do i = 1, size(ux)
      uy(i)= element%node(i)%state%uy
 end do
 
-u(:,1)=ux(:)
-u(:,2)=uy(:)
+u(1,:)=ux(:)
+u(2,:)=uy(:)
 
 !get the nodal coordinates:
 allocate(x(size(element%node)))
@@ -71,17 +72,21 @@ localcoordvec(4,:)= (/1.,-1./)
 do i=1, size(x) !that is the number of nodes
 	xi= localcoordvec(i,1)
 	eta= localcoordvec(i,2)
+
 	Dhat= matmul(u,matmul(C(xi,eta),Jinv(xi,eta)))
-	
 	strainvector(1)= Dhat(1,1)
 	strainvector(2)= Dhat(2,2)
 	strainvector(3)= Dhat(1,2)+Dhat(2,1)
-	element%node(i)%state%strainvector= strainvector
-
-	print *,strainvector
+     
 
 	stressvector= matmul(A,strainvector)
-	element%node(i)%state%stressvector=stressvector
+     vmises=sqrt(((strainvector(1)-strainvector(2))**2.+6*strainvector(3)**2.)/2.)
+     element%node(i)%state%vmises=(element%node(i)%state%vmises+vmises)/2.
+     do j=1,size(strainvector)
+         element%node(i)%state%strainvector(j)= (element%node(i)%state%strainvector(j)+strainvector(j))/2.
+         element%node(i)%state%stressvector(j)=(element%node(i)%state%stressvector(j)+stressvector(j))/2.
+     end do
+	
 end do
 
 
