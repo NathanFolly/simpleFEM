@@ -37,8 +37,8 @@ allocate(uy(size(element%node)))
 
 
 do i = 1, size(ux)
-     ux(i)= element%node(i)%state%ux
-     uy(i)= element%node(i)%state%uy
+     ux(i)= element%node(i)%p%state%ux
+     uy(i)= element%node(i)%p%state%uy
 end do
 
 u(1,:)=ux(:)
@@ -48,8 +48,8 @@ u(2,:)=uy(:)
 allocate(x(size(element%node)))
 allocate(y(size(element%node)))
 do i=1,size(x)
-     x(i)=element%node(i)%x
-     y(i)=element%node(i)%y
+     x(i)=element%node(i)%p%x
+     y(i)=element%node(i)%p%y
 end do
 
 
@@ -81,10 +81,10 @@ do i=1, size(x) !that is the number of nodes
 
 	stressvector= matmul(A,strainvector)
      vmises=sqrt(((strainvector(1)-strainvector(2))**2.+6*strainvector(3)**2.)/2.)
-     element%node(i)%state%vmises=(element%node(i)%state%vmises+vmises)/2.
+     element%node(i)%p%state%vmises=(element%node(i)%p%state%vmises+vmises)/2.
      do j=1,size(strainvector)
-         element%node(i)%state%strainvector(j)= (element%node(i)%state%strainvector(j)+strainvector(j))/2.
-         element%node(i)%state%stressvector(j)=(element%node(i)%state%stressvector(j)+stressvector(j))/2.
+         element%node(i)%p%state%strainvector(j)= (element%node(i)%p%state%strainvector(j)+strainvector(j))/2.
+         element%node(i)%p%state%stressvector(j)= (element%node(i)%p%state%stressvector(j)+stressvector(j))/2.
      end do
 	
 end do

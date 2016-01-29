@@ -13,15 +13,15 @@ type(elementtype), intent(in) :: element
 real, dimension(8,8), intent(inout)::kk
 type(propertytype), intent(in):: property
 
-type(nodetype), dimension(4) :: node
+!type(nodetype), dimension(4) :: node
 real, dimension(8) :: localcoords
 real, dimension(2,2) :: Jacoby
 real, dimension(4) :: xx, yy
 integer :: i, j
 
 do i=1,4
-     xx(i)=element%node(i)%x
-     yy(i)=element%node(i)%y
+     xx(i)=element%node(i)%p%x
+     yy(i)=element%node(i)%p%y
 end do
 
 

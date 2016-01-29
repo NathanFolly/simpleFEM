@@ -34,6 +34,11 @@ module mytypes
 		real, dimension(3) ::conditions
 	end type bcobject
 
+
+	type ndptrarr ! the only way to create an array of pointers
+		type(nodetype), pointer :: p
+	end type ndptrarr
+
 	 type elementtype
 	 	! Right now, the node instances are stored within each element
 	 	! Pointers might be the better idea!!
@@ -43,7 +48,7 @@ module mytypes
 	 	logical :: hasbc=.false.
 	 	integer :: bcnature=0
 	 	real, dimension(2,3) :: bc=0
-	 	type(nodetype), allocatable :: node(:)
+	 	type(ndptrarr), allocatable :: node(:)
 	end type elementtype
 
 
@@ -91,7 +96,7 @@ PetscReal 		petforce(8)
 
 
 type(elementtype), allocatable, target :: element(:) ! essentially the mesh is just an array of elements
-type(nodetype), allocatable :: node(:)
+type(nodetype), allocatable, target :: node(:)
 real, dimension(8,8) :: kele=0 ! This is the dummy element stiffness matrix that
 !gets updated by the subroutine generateesm
 real, allocatable :: fele(:) !element force vector
@@ -120,7 +125,7 @@ interface	! need this interface so that we can pass an allocatable array to
 		use mytypes
 		implicit none
 		type(elementtype), allocatable, intent(inout):: element(:)
-		type(nodetype), allocatable, intent(inout):: node(:)
+		type(nodetype), allocatable, intent(inout), target:: node(:)
 		integer, intent(inout) :: nnodes
 		character*50, intent(in) :: meshfilename
 		integer, intent(inout) :: quadstart, quadend, quadcounter
@@ -393,7 +398,7 @@ write(5,*) 1 ! 1-component scalar field
 write(5,*) nnodes ! number of associated nodal values
 
 do i =1,nnodes
-	write(5,*) node(i)%num
+	write(5,*) node(i)%num, node(i)%state%vmises
 end do	
 write(5,'(A)') '$EndNodeData'
 
@@ -417,7 +422,7 @@ function globaldof(element, localdof) ! returns the global degree of freedom in 
 		nodedof=1
 	endif
 
-	globalnodenum=element%node(localnodenum)%num
+	globalnodenum=element%node(localnodenum)%p%num
 
 	globaldof=2*globalnodenum-(2-nodedof)
 
@@ -440,10 +445,10 @@ subroutine lumpstress(element, forcevector)
 	! stress is uniform over an element -> take the stress, multiply by the appropriate node distance, divide by number of nodes
 	if (ndof_nodal==2) then
 		do i = 1, size(element%node)-1
-			forcevector(2*i-1) = forcevector(2*i-1)+element%bc(1,1)*abs(element%node(i)%y-element%node(i+1)%y)/2.
-			forcevector(2*i) = forcevector(2*i)+element%bc(1,2)*abs(element%node(i)%x-element%node(i+1)%x)/2.
-			forcevector(2*(i+1)-1) = forcevector(2*(i+1)-1)+element%bc(1,1)*abs(element%node(i)%y-element%node(i+1)%y)/2.
-			forcevector(2*(i+1)) = forcevector(2*(i+1))+element%bc(1,2)*abs(element%node(i)%x-element%node(i+1)%x)/2.
+			forcevector(2*i-1) = forcevector(2*i-1)+element%bc(1,1)*abs(element%node(i)%p%y-element%node(i+1)%p%y)/2.
+			forcevector(2*i) = forcevector(2*i)+element%bc(1,2)*abs(element%node(i)%p%x-element%node(i+1)%p%x)/2.
+			forcevector(2*(i+1)-1) = forcevector(2*(i+1)-1)+element%bc(1,1)*abs(element%node(i)%p%y-element%node(i+1)%p%y)/2.
+			forcevector(2*(i+1)) = forcevector(2*(i+1))+element%bc(1,2)*abs(element%node(i)%p%x-element%node(i+1)%p%x)/2.
 		end do
 	end if
 end subroutine lumpstress
@@ -454,8 +459,8 @@ subroutine assigndisplacements(displacements, element)
 
 	do i=1,size(element)
 		do j=1,size(element(i)%node)
-		element(i)%node(j)%state%ux=displacements(globaldof(element(i),2*j-1))
-		element(i)%node(j)%state%uy=displacements(globaldof(element(i),2*j))
+		element(i)%node(j)%p%state%ux=displacements(globaldof(element(i),2*j-1))
+		element(i)%node(j)%p%state%uy=displacements(globaldof(element(i),2*j))
 		end do
 	end do
 end subroutine assigndisplacements

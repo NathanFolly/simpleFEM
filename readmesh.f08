@@ -12,7 +12,7 @@ subroutine readmesh(element,node, meshfilename, quadstart, quadend, quadcounter,
 use mytypes
 implicit none
 type(elementtype), allocatable, intent(inout):: element(:)
-type(nodetype), allocatable, intent(inout) :: node(:)
+type(nodetype), allocatable, intent(inout), target :: node(:)
 integer, intent(inout) :: nnodes
 character*50, intent(in) :: meshfilename
 integer, intent(inout) :: quadstart, quadend, quadcounter! this variable is used to count the number of quad type elements
@@ -77,6 +77,9 @@ rewind(5)
 		allocate(node(nnodes))
 		do i=1,nnodes	! Then the node data starts and can be read
 			read(5,*)  node(i)%num, node(i)%x, node(i)%y, node(i)%z
+			! todo: strain and stressvectors are currently for 2-D only. adjust this if coe is made 3-D
+			allocate(node(i)%state%strainvector(3))
+			allocate(node(i)%state%stressvector(3))
 		end do
 		goto 44
 	else
@@ -105,7 +108,7 @@ rewind(5)
 				allocate(dummy(3+ntags+1))
 				read(line,*) dummy
 				allocate(element(i)%node(1))
-				element(i)%node(1)=node(dummy(4+ntags))
+				element(i)%node(1)%p=>node(dummy(4+ntags))
 				element(i)%ndof_local=2*1
 				! todo: insert name support for 1-node-elements
 			else if (element(i)%kind==1) then !kind 1 is a 2-node line element
@@ -114,7 +117,7 @@ rewind(5)
 				element(i)%name=taglist(dummy(4))
 				allocate(element(i)%node(2))
 				do j=1,2
-					element(i)%node(j)=node(dummy(3+ntags+j))
+					element(i)%node(j)%p=>node(dummy(3+ntags+j))
 				end do
 				element(i)%ndof_local=2*2
 			else if (element(i)%kind==3) then 	! kind 3 is a quadrilateral 4-node element
@@ -127,10 +130,7 @@ rewind(5)
 				element(i)%name=taglist(dummy(4))
 				allocate(element(i)%node(4))
 				do j=1,4
-					element(i)%node(j)=node(dummy(3+ntags+j))
-					! also allocate the stress and strain vectors for a 2-D case
-					allocate(element(i)%node(j)%state%strainvector(3))
-					allocate(element(i)%node(j)%state%stressvector(3))
+					element(i)%node(j)%p=>node(dummy(3+ntags+j))
 				end do
 				element(i)%ndof_local=2*size(element(i)%node)
 			else 
