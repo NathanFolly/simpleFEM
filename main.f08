@@ -282,6 +282,37 @@ do k = 1, size(element)
 	! call MatSetValues(Apet,8,rowmap-1,8,columnmap-1,petsckele,ADD_VALUES,ierrpet)	
 end do
 
+!!!!!!!!!!!!!!!!! this is a very crude and hardcoded way to set the essential BC.:
+! todo: get rid of this in the future
+
+!first we need to assemble the Matrix because we cannot mixADD_VALUES and INSERT_VALUES without assembling inbetween
+
+call MatAssemblyBegin(Apet, MAT_FINAL_ASSEMBLY, ierrpet)
+call MatAssemblyEnd(Apet, MAT_FINAL_ASSEMBLY, ierrpet)
+
+
+! now let's set the essential BC
+do i =1, size (element)
+	if (element(i)%name=='bottom') then
+		do j=1,size(element(i)%node)
+			call MatSetValues(Apet,1, 2*element(i)%node(j)%p%num-2,&
+			& ndof_global, (/(i, i=0,ndof_global-1)/), &
+			& (/(0, i=1,ndof_global)/), INSERT_VALUES, ierrpet)
+			call MatSetValues(Apet,1, 2*element(i)%node(j)%p%num-1,&
+			& ndof_global, (/(i, i=0,ndof_global-1)/), &
+			& (/(0, i=1,ndof_global)/), INSERT_VALUES, ierrpet)
+		end do
+		else if (element(i)%name=='top') then
+		do j=1,size(element(i)%node)
+			call MatSetValues(Apet,1, 2*element(i)%node(j)%p%num-2,&
+			& ndof_global, (/(i, i=0,ndof_global-1)/), &
+			& (/(0, i=1,ndof_global)/), INSERT_VALUES, ierrpet)
+		end do
+	end if
+end do
+
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 ! The necessary calls to complete the assembley of Vectors an matrices
 call VecAssemblyBegin(b, ierrpet)
 call VecAssemblyEnd(b, ierrpet)
@@ -402,8 +433,23 @@ do i =1,nnodes
 end do	
 write(5,'(A)') '$EndNodeData'
 
-close(5)
+write(5,'(A)') '$NodeData'
+write(5,*) 1 !write the number of string tags
+write(5,'(A)') 'deformation' !the string tag
+write(5,*) 1 ! Wehave one tag of type real (the point in time)
+write(5,*) 0.0
+write(5,*) 3 ! Three integer tags
+write(5,*) 0 !Time step
 
+write(5,*) 3 ! 3-component vector field
+write(5,*) nnodes ! number of associated nodal values
+
+do i =1,nnodes
+	write(5,*) node(i)%num, node(i)%state%ux, node(i)%state%uy, 0.
+end do	
+write(5,'(A)') '$EndNodeData'
+
+close(5)
 
 
 contains

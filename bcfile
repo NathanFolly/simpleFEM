@@ -4,6 +4,11 @@
 ! The file is tab seperated.
 ! First you need to specify the number of bundary conditions
 ! The format is:  nametag of affected boundary | BC type (1=natural, 2=essential) | value in x | value in y | value in z
+!
+! If the movement is unrestricted in one specific direction, specify that as null
+!
+!
+
 
 $start
 4
