@@ -107,6 +107,7 @@ rewind(5)
 			if (element(i)%kind==15) then !kind 15 is a one-node element
 				allocate(dummy(3+ntags+1))
 				read(line,*) dummy
+				element(i)%name=taglist(dummy(4))
 				allocate(element(i)%node(1))
 				element(i)%node(1)%p=>node(dummy(4+ntags))
 				element(i)%ndof_local=2*1

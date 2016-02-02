@@ -12,8 +12,8 @@
 
 $start
 4
-bottom		2	0E1	0E1	0e1
-top		1	0E1	100E6	0E1
+forcepoint	1	0E1	100E3	0e1
+top		2	0E1	0E1	0E1
 leftside	2	0E1	0E1	0E1
 rightside	2	0E1	0E1	0E1
 $end

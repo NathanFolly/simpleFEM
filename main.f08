@@ -261,6 +261,7 @@ do k = 1, size(element)
 	if ((element(k)%bcnature==1).or.(element(k)%bcnature==3)) then
 		call lumpstress(element(k), fele)
 		petforce=fele
+		rowmap =0
 		do i=1,element(k)%ndof_local
 			rowmap(i)=globaldof(element(k),i)-1
 		end do
@@ -293,21 +294,23 @@ call MatAssemblyEnd(Apet, MAT_FINAL_ASSEMBLY, ierrpet)
 
 ! now let's set the essential BC
 do i =1, size (element)
-	if (element(i)%name=='bottom') then
+	if (element(i)%name=='leftside') then
 		do j=1,size(element(i)%node)
-			call MatSetValues(Apet,1, 2*element(i)%node(j)%p%num-2,&
+			call MatSetValues(Apet,&
+				&1, 2*element(i)%node(j)%p%num-2,&
 			& ndof_global, (/(i, i=0,ndof_global-1)/), &
 			& (/(0, i=1,ndof_global)/), INSERT_VALUES, ierrpet)
-			call MatSetValues(Apet,1, 2*element(i)%node(j)%p%num-1,&
+			call MatSetValues(Apet,&
+				&1, 2*element(i)%node(j)%p%num-1,&
 			& ndof_global, (/(i, i=0,ndof_global-1)/), &
 			& (/(0, i=1,ndof_global)/), INSERT_VALUES, ierrpet)
 		end do
-		else if (element(i)%name=='top') then
-		do j=1,size(element(i)%node)
-			call MatSetValues(Apet,1, 2*element(i)%node(j)%p%num-2,&
-			& ndof_global, (/(i, i=0,ndof_global-1)/), &
-			& (/(0, i=1,ndof_global)/), INSERT_VALUES, ierrpet)
-		end do
+		!else if (element(i)%name=='top') then
+		! do j=1,size(element(i)%node)
+		! 	call MatSetValues(Apet,1, 2*element(i)%node(j)%p%num-2,&
+		! 	& ndof_global, (/(i, i=0,ndof_global-1)/), &
+		! 	& (/(0, i=1,ndof_global)/), INSERT_VALUES, ierrpet)
+		!	end do
 	end if
 end do
 
@@ -320,11 +323,11 @@ call MatAssemblyBegin(Apet, MAT_FINAL_ASSEMBLY, ierrpet)
 call MatAssemblyEnd(Apet, MAT_FINAL_ASSEMBLY, ierrpet)
 
 ! Let's look at the matrix we assembled :
-call PetscViewerCreate(PETSC_COMM_WORLD, viewer, ierrpet)
-call PetscViewerSetType(viewer, PETSCVIEWERASCII, ierrpet)
-call PetscViewerFileSetName(viewer, 'Kay', ierrpet)
-call MatView(Apet,viewer,ierrpet)
-
+!call PetscViewerCreate(PETSC_COMM_WORLD, viewer, ierrpet)
+!call PetscViewerSetType(viewer, PETSCVIEWERASCII, ierrpet)
+!call PetscViewerFileSetName(viewer, 'Kay', ierrpet)
+!call MatView(Apet,viewer,ierrpet)
+!call VecView(b,PETSC_VIEWER_STDOUT_WORLD, ierrpet)
 
 
 
@@ -489,13 +492,18 @@ subroutine lumpstress(element, forcevector)
 	end if
 	forcevector =0
 	! stress is uniform over an element -> take the stress, multiply by the appropriate node distance, divide by number of nodes
-	if (ndof_nodal==2) then
-		do i = 1, size(element%node)-1
-			forcevector(2*i-1) = forcevector(2*i-1)+element%bc(1,1)*abs(element%node(i)%p%y-element%node(i+1)%p%y)/2.
-			forcevector(2*i) = forcevector(2*i)+element%bc(1,2)*abs(element%node(i)%p%x-element%node(i+1)%p%x)/2.
-			forcevector(2*(i+1)-1) = forcevector(2*(i+1)-1)+element%bc(1,1)*abs(element%node(i)%p%y-element%node(i+1)%p%y)/2.
-			forcevector(2*(i+1)) = forcevector(2*(i+1))+element%bc(1,2)*abs(element%node(i)%p%x-element%node(i+1)%p%x)/2.
-		end do
+	if (element%kind==1) then!those are the two-node line elements
+		if (ndof_nodal==2) then
+			do i = 1, size(element%node)-1
+				forcevector(2*i-1) = forcevector(2*i-1)+element%bc(1,1)*abs(element%node(i)%p%y-element%node(i+1)%p%y)/2.
+				forcevector(2*i) = forcevector(2*i)+element%bc(1,2)*abs(element%node(i)%p%x-element%node(i+1)%p%x)/2.
+				forcevector(2*(i+1)-1) = forcevector(2*(i+1)-1)+element%bc(1,1)*abs(element%node(i)%p%y-element%node(i+1)%p%y)/2.
+				forcevector(2*(i+1)) = forcevector(2*(i+1))+element%bc(1,2)*abs(element%node(i)%p%x-element%node(i+1)%p%x)/2.
+			end do
+		end if
+	else if(element%kind==15) then ! the one-node elements
+		forcevector(1)=element%bc(1,1)
+		forcevector(2)=element%bc(1,2)
 	end if
 end subroutine lumpstress
 
