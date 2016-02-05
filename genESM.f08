@@ -135,6 +135,27 @@ function Jinv(xi,eta) !inverse of the jacobian matrix
 end function Jinv
 
 
+! and the determinant of the Jacobian:
+
+function djac(xi,eta)
+	real, intent(in) :: xi,eta
+	real :: djac
+
+	djac = -xx(1) * yy(2) / 0.8D1 + xx(1) * yy(4) / 0.8D1 + xx(2) * yy&
+     &(1) / 0.8D1 - xx(2) * yy(3) / 0.8D1 + xx(3) * yy(2) / 0.8D1 - xx(3&
+     &) * yy(4) / 0.8D1 - xx(4) * yy(1) / 0.8D1 + xx(4) * yy(3) / 0.8D1 &
+     &+ xx(1) * eta * yy(3) / 0.8D1 - xx(1) * eta * yy(4) / 0.8D1 + xx(1&
+     &) * yy(2) * xi / 0.8D1 - xx(1) * yy(3) * xi / 0.8D1 - xx(2) * eta &
+     &* yy(3) / 0.8D1 + xx(2) * eta * yy(4) / 0.8D1 - xx(2) * yy(1) * xi&
+     & / 0.8D1 + xx(2) * yy(4) * xi / 0.8D1 - xx(3) * eta * yy(1) / 0.8D&
+     &1 + xx(3) * eta * yy(2) / 0.8D1 + xx(3) * yy(1) * xi / 0.8D1 - xx(&
+     &3) * yy(4) * xi / 0.8D1 + xx(4) * eta * yy(1) / 0.8D1 - xx(4) * et&
+     &a * yy(2) / 0.8D1 - xx(4) * yy(2) * xi / 0.8D1 + xx(4) * yy(3) * x&
+     &i / 0.8D1
+end function djac
+
+
+
 
 ! we have the differential matrix operator:
 !	 | d/dx   0   |
@@ -165,7 +186,7 @@ function k(xi, eta)
  	real, dimension(8,8) ::k
  	real :: xi, eta
 
- 	k=matmul(transpose(AA(xi,eta)),matmul(planestrain,AA(xi,eta)))
+ 	k=matmul(transpose(AA(xi,eta)),matmul(planestrain,AA(xi,eta)))*djac(xi,eta)
  	
  end function k
 
