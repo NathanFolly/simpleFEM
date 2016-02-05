@@ -261,7 +261,11 @@ do k = 1, size(element)
 	! natural boundary conditions (nodal forces) are written to the force vector
 	if ((element(k)%bcnature==1).or.(element(k)%bcnature==3)) then
 		call lumpstress(element(k), fele)
-		petforce=fele
+		petforce =0.
+		do i=1,size(fele)
+			petforce(i)=fele(i)
+		end do
+
 		rowmap =0
 		do i=1,element(k)%ndof_local
 			rowmap(i)=globaldof(element(k),i)-1
@@ -303,6 +307,7 @@ end do
 call MatAssemblyBegin(Apet, MAT_FINAL_ASSEMBLY, ierrpet)
 call MatAssemblyEnd(Apet, MAT_FINAL_ASSEMBLY, ierrpet)
 
+print *,'finished assembley'
 
 ! now let's set the essential BC
 do i =1, size (element)

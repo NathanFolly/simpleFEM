@@ -20,7 +20,6 @@ do i=1, size(element%node)
 	y(i)= element%node(i)%p%y
 end do
 
-print *, x,y
 
 E=element%properties%E
 nu= element%properties%nu
