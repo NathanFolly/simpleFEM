@@ -49,6 +49,7 @@ module mytypes
 	 	integer :: bcnature=0
 	 	real, dimension(2,3) :: bc=0
 	 	type(ndptrarr), allocatable :: node(:)
+	 	type(propertytype) :: properties
 	end type elementtype
 
 
@@ -268,7 +269,10 @@ do k = 1, size(element)
 		call VecSetValues(b,size(fele),rowmap,petforce,ADD_VALUES,ierrpet)
 		
 	else if (element(k)%kind == 3) then
-		call generateesm(kele,element(k),properties)
+		element(k)%properties=properties
+		call genESM(element(k),kele)
+		!this is the old subroutine for element stiffness matrix generation:
+		!call generateesm(kele,element(k),properties)
 		petsckele=kele ! because the Matsetvalue subroutine only accepts PETSC-scalars / PETSC-vectors
 		do i=1,element(k)%ndof_local
 			do j=1,element(k)%ndof_local

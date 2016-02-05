@@ -3,12 +3,12 @@ include $(PETSC_DIR)/lib/petsc/conf/petscvariables
 include $(PETSC_DIR)/lib/petsc/conf/variables
 include $(PETSC_DIR)/$(PETSC_ARCH)/lib/petsc/conf/MPICH
 
-OBJS = simpleFEM main.o generateesm.o readmesh.o readBC.o recoverstress.o
+OBJS = simpleFEM main.o generateesm.o readmesh.o readBC.o recoverstress.o genESM.o
 LD_LIBRARY_PATH= $(PETSC_DIR)/$(PETSC_ARCH)/lib
 FFLAGS = -cpp -I$(PETSC_DIR)/include/petsc/finclude/ -I$(PETSC_DIR)/include/ -I$(PETSC_DIR)/$(PETSC_ARCH)/include/ -Dmypetscpath=$(PETSC_DIR) 
 FC= mpifort
-all: main.o generateesm.o readmesh.o readBC.o recoverstress.o
-	$(FC) -Wl,-rpath=$(LD_LIBRARY_PATH) -L$(LD_LIBRARY_PATH) -o simpleFEM main.o generateesm.o readmesh.o readBC.o recoverstress.o -lpetsc
+all: main.o generateesm.o readmesh.o readBC.o recoverstress.o genESM.o
+	$(FC) -Wl,-rpath=$(LD_LIBRARY_PATH) -L$(LD_LIBRARY_PATH) -o simpleFEM main.o generateesm.o readmesh.o readBC.o recoverstress.o genESM.o -lpetsc
 
 main.o: main.f08
 	$(FC) $(FFLAGS) -c main.f08
@@ -24,6 +24,9 @@ readBC.o: readBC.f08
 
 recoverstress.o: recoverstress.f08
 	$(FC) $(FFLAGS) -c recoverstress.f08
+
+genESM.o: genESM.f08
+	$(FC) $(FFLAGS) -c genESM.f08
 
 clean:
 	rm -rf $(OBJS)
