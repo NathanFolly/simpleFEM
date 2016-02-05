@@ -20,11 +20,16 @@ do i=1, size(element%node)
 	y(i)= element%node(i)%p%y
 end do
 
+print *, x,y
+
 E=element%properties%E
 nu= element%properties%nu
 
 
 ! defining the stress-strain relation matrices
+! todo: create stresss-strain relation matrix outside the souroutine and only reference it here
+! 		defining them new everytime the subroutine is called will influence performance nagitively
+!       
 planestrain(1,1) = E * (0.1D1 - nu) / (0.1D1 + nu) / (0.1D1 - 0.2D1 * nu)
 planestrain(1,2) = E / (0.1D1 + nu) / (0.1D1 - 0.2D1 * nu) * nu
 planestrain(2,1) = E / (0.1D1 + nu) / (0.1D1 - 0.2D1 * nu) * nu
@@ -83,10 +88,24 @@ function AA(xi, eta)
 		AA(1,2*i-1)= globaldiff(i,1)
 		AA(2, 2*i) = globaldiff(i,2)
 		AA(3,2*i-1)= globaldiff(i,2)
-		AA(2, 2*i) = globaldiff(i,1)
+		AA(3, 2*i) = globaldiff(i,1)
 	end do
 end function AA
-
+! we have the differential matrix operator:
+!	 | d/dx   0   |
+! A= |  0    d/dy |
+!	 | d/dy  d/dx |
+!
+! to produce the differential equation in displacement formulation:
+! [A]^T [B] [A] {e} = {f}
+!
+! if we substitute the continuous displacement {e} ={e_x, e_y}^T with the discrete one:
+! {ê} = sum(N_i*{e}_i) or rather {ê}= [N]{e_i} then we have:
+!
+!		| dN_1/dx 		0 		dN_2/dx 		0 		dN_3/dx  		0 		dN_4/dx 		0	|
+!  AA= 	| 			dN_1/dy 		0 		dN_2/dy			0 		dN_3/dy 	 	0 		dN_4/dy	|
+!		| dN_1/dy 	dN_1/dx 	dN_2/dy  	dN_2/dx  	dN_3/dy 	dN_3/dx 	dN_4/dy 	dN_4/dx |
+!
 
 
 ! Inverse of the Jacoby matrix
@@ -141,37 +160,23 @@ function djac(xi,eta)
 	real, intent(in) :: xi,eta
 	real :: djac
 
-	djac = -xx(1) * yy(2) / 0.8D1 + xx(1) * yy(4) / 0.8D1 + xx(2) * yy&
-     &(1) / 0.8D1 - xx(2) * yy(3) / 0.8D1 + xx(3) * yy(2) / 0.8D1 - xx(3&
-     &) * yy(4) / 0.8D1 - xx(4) * yy(1) / 0.8D1 + xx(4) * yy(3) / 0.8D1 &
-     &+ xx(1) * eta * yy(3) / 0.8D1 - xx(1) * eta * yy(4) / 0.8D1 + xx(1&
-     &) * yy(2) * xi / 0.8D1 - xx(1) * yy(3) * xi / 0.8D1 - xx(2) * eta &
-     &* yy(3) / 0.8D1 + xx(2) * eta * yy(4) / 0.8D1 - xx(2) * yy(1) * xi&
-     & / 0.8D1 + xx(2) * yy(4) * xi / 0.8D1 - xx(3) * eta * yy(1) / 0.8D&
-     &1 + xx(3) * eta * yy(2) / 0.8D1 + xx(3) * yy(1) * xi / 0.8D1 - xx(&
-     &3) * yy(4) * xi / 0.8D1 + xx(4) * eta * yy(1) / 0.8D1 - xx(4) * et&
-     &a * yy(2) / 0.8D1 - xx(4) * yy(2) * xi / 0.8D1 + xx(4) * yy(3) * x&
+	djac = -x(1) * y(2) / 0.8D1 + x(1) * y(4) / 0.8D1 + x(2) * y&
+     &(1) / 0.8D1 - x(2) * y(3) / 0.8D1 + x(3) * y(2) / 0.8D1 - x(3&
+     &) * y(4) / 0.8D1 - x(4) * y(1) / 0.8D1 + x(4) * y(3) / 0.8D1 &
+     &+ x(1) * eta * y(3) / 0.8D1 - x(1) * eta * y(4) / 0.8D1 + x(1&
+     &) * y(2) * xi / 0.8D1 - x(1) * y(3) * xi / 0.8D1 - x(2) * eta &
+     &* y(3) / 0.8D1 + x(2) * eta * y(4) / 0.8D1 - x(2) * y(1) * xi&
+     & / 0.8D1 + x(2) * y(4) * xi / 0.8D1 - x(3) * eta * y(1) / 0.8D&
+     &1 + x(3) * eta * y(2) / 0.8D1 + x(3) * y(1) * xi / 0.8D1 - x(&
+     &3) * y(4) * xi / 0.8D1 + x(4) * eta * y(1) / 0.8D1 - x(4) * et&
+     &a * y(2) / 0.8D1 - x(4) * y(2) * xi / 0.8D1 + x(4) * y(3) * x&
      &i / 0.8D1
 end function djac
 
 
 
 
-! we have the differential matrix operator:
-!	 | d/dx   0   |
-! A= |  0    d/dy |
-!	 | d/dy  d/dx |
-!
-! to produce the differential equation in displacement formulation:
-! [A]^T [B] [A] {e} = {f}
-!
-! if we substitute the continuous displacement {e} ={e_x, e_y}^T with the discrete one:
-! {ê} = sum(N_i*{e}_i) or rather {ê}= [N]{e_i} then we have:
-!
-!		| dN_1/dx 		0 		dN_2/dx 		0 		dN_3/dx  		0 		dN_4/dx 		0	|
-!  AA= 	| 			dN_1/dy 		0 		dN_2/dy			0 		dN_3/dy 	 	0 		dN_4/dy	|
-!		| dN_1/dy 	dN_1/dx 	dN_2/dy  	dN_2/dx  	dN_3/dy 	dN_3/dx 	dN_4/dy 	dN_4/dx |
-!
+
 ! and in local coordinates the equivalent of A is:
 ! 
 !		| dxi/dx*d/dxi+ deta/dx*d/deta          0                      |

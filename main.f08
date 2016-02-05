@@ -271,8 +271,16 @@ do k = 1, size(element)
 	else if (element(k)%kind == 3) then
 		element(k)%properties=properties
 		call genESM(element(k),kele)
-		!this is the old subroutine for element stiffness matrix generation:
-		!call generateesm(kele,element(k),properties)
+		! print *, '------------------------------------'
+		! do i=1,8
+		! 	print *,kele(i,:)
+		! end do
+		! !this is the old subroutine for element stiffness matrix generation:
+		! call generateesm(kele,element(k),properties)
+		! print *,'....'
+		! do i=1,8
+		! 	print *,kele(i,:)
+		! end do
 		petsckele=kele ! because the Matsetvalue subroutine only accepts PETSC-scalars / PETSC-vectors
 		do i=1,element(k)%ndof_local
 			do j=1,element(k)%ndof_local
