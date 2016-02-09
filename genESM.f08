@@ -4,14 +4,14 @@ use mytypes
 implicit none
 
 type(elementtype) :: element
-real, dimension(8,8) :: kele
-real, dimension(4):: x=0, y=0 !the nodal x and y values
-real :: E, nu ! material properties
+real(kind=dp), dimension(8,8) :: kele
+real(kind=dp), dimension(4):: x=0, y=0 !the nodal x and y values
+real(kind=dp) :: E, nu ! material properties
 !real, dimension(4,2) :: C=0 ! The matrix that holds the derivatives of the shape functions
-real :: Jacobian=0 !the jacobain
+real(kind=dp) :: Jacobian=0 !the jacobain
 
-real, dimension(3,3), target :: planestrain=0, planestress=0 ! the stress-strain relations for the respective cases
-real, dimension(3,3), pointer :: ss(:,:)
+real(kind=dp), dimension(3,3), target :: planestrain=0, planestress=0 ! the stress-strain relations for the respective cases
+real(kind=dp), dimension(3,3), pointer :: ss(:,:)
 integer :: i
 
 !writing the nodal coordinates in the appropriate arrays for easier handling
@@ -37,10 +37,17 @@ planestrain(3,3) = E * (0.1D1 - nu) / (0.1D1 + nu) / (0.2D1 - 0.2D1 * nu)
 
 !todo: introduce the plane stress formulation
 
+planestress(1,1) = 1.D0
+planestress(1,2) = nu
+planestress(2,1) = nu
+planestress(2,2) = 1.D0
+planestress(3,3) = (1.D0-nu)/2.D0
+
+planestress=planestress*(E)/(1.D0 - nu**2)
 
 ! todo: introduce a function that selects the right stress-strain relation matrix
 
-ss=>planestrain
+ss=>planestress
 	
 
 ! all we need to do now is to call the assembling subroutine
@@ -51,12 +58,11 @@ call gaussint(kele)
 
 
 
-
 contains
 
 function C(xi, eta) !The derivatives of the shape functions: C(:,1)=(d N_i)/(d xi) C(:,2)=(dN_i)/(d eta)
-	real, dimension (4,2) :: C
-	real, intent(in):: xi, eta
+	real(kind=dp), dimension (4,2) :: C
+	real(kind=dp), intent(in):: xi, eta
 
  	C(1,1) = -0.1D1 / 0.4D1 + eta / 0.4D1 
     C(1,2) = -0.1D1 / 0.4D1 + xi / 0.4D1
@@ -77,9 +83,9 @@ end function C
 ! 				| dN_4/dx 	dN_4/dy |
 
 function AA(xi, eta)
-	real, dimension(3,8) :: AA
-	real, dimension(4,2) :: globaldiff=0
-	real :: xi, eta
+	real(kind=dp), dimension(3,8) :: AA
+	real(kind=dp), dimension(4,2) :: globaldiff=0
+	real(kind=dp) :: xi, eta
 	AA=0
 	globaldiff= matmul(C(xi,eta),Jinv(xi,eta))
 
@@ -115,8 +121,8 @@ end function AA
 
 
 function Jinv(xi,eta) !inverse of the jacobian matrix
-	real, dimension(2,2) :: Jinv
-	real, intent(in):: xi, eta
+	real(kind=dp), dimension(2,2) :: Jinv
+	real(kind=dp), intent(in):: xi, eta
 
 	Jinv(1,1) = 2 * (y(1) * xi - y(2) * xi + y(3) * xi - y(4) * xi - y&
      &(1) + y(2) + y(3) - y(4)) / (x(1) * eta * y(3) - x(1) * eta * y(4)&
@@ -156,8 +162,8 @@ end function Jinv
 ! and the determinant of the Jacobian:
 
 function djac(xi,eta)
-	real, intent(in) :: xi,eta
-	real :: djac
+	real(kind=dp), intent(in) :: xi,eta
+	real(kind=dp) :: djac
 
 	djac = -x(1) * y(2) / 0.8D1 + x(1) * y(4) / 0.8D1 + x(2) * y&
      &(1) / 0.8D1 - x(2) * y(3) / 0.8D1 + x(3) * y(2) / 0.8D1 - x(3&
@@ -187,8 +193,8 @@ end function djac
 ! [k] = [AA]^T [SS] [AA]
 
 function k(xi, eta)
- 	real, dimension(8,8) ::k
- 	real :: xi, eta
+ 	real(kind=dp), dimension(8,8) ::k
+ 	real(kind=dp) :: xi, eta
 
  	k=matmul(transpose(AA(xi,eta)),matmul(planestrain,AA(xi,eta)))*djac(xi,eta)
  	
@@ -198,11 +204,11 @@ function k(xi, eta)
 subroutine gaussint(dummymatrix)
 
 	implicit none
-	real, dimension(8,8), intent(inout) :: dummymatrix
-	real, dimension(3) :: xi, eta
-	real:: w1, w2, w
+	real(kind=dp), dimension(8,8), intent(inout) :: dummymatrix
+	real(kind=dp), dimension(3) :: xi, eta
+	real(kind=dp):: w1, w2, w
 	integer::i,j
-	real, dimension(8,8):: intermedres=0
+	real(kind=dp), dimension(8,8):: intermedres=0
 
 	xi=(/sqrt(3./5.),-sqrt(3./5.),0./)
 	eta=(/sqrt(3./5.),-sqrt(3./5.),0./)

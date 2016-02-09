@@ -4,9 +4,9 @@
 module mytypes
 	! we want some properties defined. Since we do assume constant global properties, we will later on create only one instance of this type.
 	! IN later programs, we could also attach one property tape to each nodetype and make the properties variables.
-
+integer, parameter :: dp = selected_real_kind(15,307)
 	type propertytype
-		real :: E, nu
+		real(kind=dp) :: E, nu
 	end type propertytype
 
 	! We need to define a format for our mash data
@@ -14,24 +14,24 @@ module mytypes
 	! So and element centered data structure seems to make sense
 
 	type statetype
-		real ::  ux, uy, uz ! the displacements
-		real, allocatable :: stressvector(:) !stresstensor as vector, in the case of 2D: (sigx, sigy, tauxy)
-		real, allocatable :: strainvector(:) !Straintensor as vector, in the case of 2D: (epsx, epsy, gamm=2*epsxy)
-		real :: vmises
+		real(kind=dp) ::  ux, uy, uz ! the displacements
+		real(kind=dp), allocatable :: stressvector(:) !stresstensor as vector, in the case of 2D: (sigx, sigy, tauxy)
+		real(kind=dp), allocatable :: strainvector(:) !Straintensor as vector, in the case of 2D: (epsx, epsy, gamm=2*epsxy)
+		real(kind=dp) :: vmises
 		!todo: make all these pointers 	
 	end type statetype
 
 
 	type nodetype
 		integer :: num
-		real :: x, y, z
+		real(kind=dp) :: x, y, z
 		type(statetype) :: state
 	 end type nodetype
 
  	type bcobject
 		integer :: bcnature
 		character*40:: boundaryname
-		real, dimension(3) ::conditions
+		real(kind=dp), dimension(3) ::conditions
 	end type bcobject
 
 
@@ -62,6 +62,7 @@ program main
 
 use mytypes
 implicit none
+
 
 !Including the relevant petsc header files:
 #include <petscsys.h>
@@ -98,11 +99,11 @@ PetscReal 		petforce(8)
 
 type(elementtype), allocatable, target :: element(:) ! essentially the mesh is just an array of elements
 type(nodetype), allocatable, target :: node(:)
-real, dimension(8,8) :: kele=0 ! This is the dummy element stiffness matrix that
+real(kind=dp), dimension(8,8) :: kele=0 ! This is the dummy element stiffness matrix that
 !gets updated by the subroutine generateesm
-real, allocatable :: fele(:) !element force vector
-real, allocatable :: displacement(:) ! Vector to store displacements in for postprocessing after the petsc-vector is distroyed
-real, allocatable :: stressvector(:)
+real(kind=dp), allocatable :: fele(:) !element force vector
+real(kind=dp), allocatable :: displacement(:) ! Vector to store displacements in for postprocessing after the petsc-vector is distroyed
+real(kind=dp), allocatable :: stressvector(:)
 integer :: vecsize !needed for allocating the displacement(:) array
 
 character*50, parameter :: meshfile='testmesh_2D_box_quad.msh'
@@ -149,7 +150,7 @@ end interface
  ! testelement%node(4)%x=1.
  ! testelement%node(4)%y=0.
 
- properties%E = 2E11
+ properties%E = 2.D11
  properties%nu = 0.3
 
 !call generateesm(kele,testelement,properties)
@@ -274,13 +275,13 @@ do k = 1, size(element)
 		
 	else if (element(k)%kind == 3) then
 		element(k)%properties=properties
-		call genESM(element(k),kele)
-		! print *, '------------------------------------'
+		!call genESM(element(k),kele)
+!		 print *, '------------------------------------'
 		! do i=1,8
 		! 	print *,kele(i,:)
 		! end do
 		! !this is the old subroutine for element stiffness matrix generation:
-		! call generateesm(kele,element(k),properties)
+		 call generateesm(kele,element(k),properties)
 		! print *,'....'
 		! do i=1,8
 		! 	print *,kele(i,:)
@@ -496,7 +497,7 @@ end function globaldof
 
 subroutine lumpstress(element, forcevector)
 	! reads the natural BC on an element(stress) and lumps it to the nodes 
-	real, allocatable, intent(inout) :: forcevector(:)
+	real(kind=dp), allocatable, intent(inout) :: forcevector(:)
 	type(elementtype), intent(in) :: element
 	integer :: i
 !	real :: nodalforcex, nodalforcey, nodalforcez

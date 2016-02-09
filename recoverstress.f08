@@ -12,16 +12,16 @@ implicit none
 type(elementtype),intent(inout) :: element
 type(propertytype),intent(in) :: property
 
-real, allocatable:: ux(:), uy(:), x(:), y(:)
-real, dimension(3):: stressvector=0, strainvector=0 ! this is for 2-D cases only
-real:: vmises
+real(kind=dp), allocatable:: ux(:), uy(:), x(:), y(:)
+real(kind=dp), dimension(3):: stressvector=0, strainvector=0 ! this is for 2-D cases only
+real(kind=dp):: vmises
 
-real :: eta=0, xi=0
+real(kind=dp) :: eta=0, xi=0
 
-real, dimension(2,2) :: Dhat=0
-real, dimension(4,2) :: localcoordvec=0 ! the vector containing the local coordinates of the nodes (from 1 to 4)
-real, dimension(2,4) :: u=0
-real, dimension(3,3) :: A=0
+real(kind=dp), dimension(2,2) :: Dhat=0
+real(kind=dp), dimension(4,2) :: localcoordvec=0 ! the vector containing the local coordinates of the nodes (from 1 to 4)
+real(kind=dp), dimension(2,4) :: u=0
+real(kind=dp), dimension(3,3) :: A=0
 
 real:: E=0, nu=0
 
@@ -99,8 +99,8 @@ end do
 contains
 
 function C(xi, eta)
-	real, dimension (4,2) :: C
-	real, intent(in):: xi, eta
+	real(kind=dp), dimension (4,2) :: C
+	real(kind=dp), intent(in):: xi, eta
 
  	C(1,1) = -0.1D1 / 0.4D1 + eta / 0.4D1 
     C(1,2) = -0.1D1 / 0.4D1 + xi / 0.4D1
@@ -118,8 +118,8 @@ end function C
 
 
 function Jinv(xi,eta)
-	real, dimension(2,2) :: Jinv
-	real, intent(in):: xi, eta
+	real(kind=dp), dimension(2,2) :: Jinv
+	real(kind=dp), intent(in):: xi, eta
 
 	Jinv(1,1) = 2 * (y(1) * xi - y(2) * xi + y(3) * xi - y(4) * xi - y&
      &(1) + y(2) + y(3) - y(4)) / (x(1) * eta * y(3) - x(1) * eta * y(4)&

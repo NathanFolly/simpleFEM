@@ -10,13 +10,13 @@ use mytypes
 implicit none
 
 type(elementtype), intent(in) :: element
-real, dimension(8,8), intent(inout)::kk
+real(kind=dp), dimension(8,8), intent(inout)::kk
 type(propertytype), intent(in):: property
 
 !type(nodetype), dimension(4) :: node
-real, dimension(8) :: localcoords
-real, dimension(2,2) :: Jacoby
-real, dimension(4) :: xx, yy
+real(kind=dp), dimension(8) :: localcoords
+real(kind=dp), dimension(2,2) :: Jacoby
+real(kind=dp), dimension(4) :: xx, yy
 integer :: i, j
 
 do i=1,4
@@ -38,11 +38,11 @@ contains
 subroutine gaussint(dummymatrix)
 
 	implicit none
-	real, dimension(8,8), intent(inout) :: dummymatrix
-	real, dimension(3) :: xi, eta
-	real:: w1, w2, w
+	real(kind=dp), dimension(8,8), intent(inout) :: dummymatrix
+	real(kind=dp), dimension(3) :: xi, eta
+	real(kind=dp):: w1, w2, w
 	integer::i,j
-	real, dimension(8,8):: intermedres=0
+	real(kind=dp), dimension(8,8):: intermedres=0
 
 !	call funcselector(ipos,jpos)
 
@@ -79,9 +79,9 @@ function k(xx,yy,xi,eta,E,nu)
      !!!!!!!!! THIS IS FOR PLAIN STRAIN !!!!!!!!
 
 	implicit none
-     real, dimension(8,8) :: k
-	real, dimension(4):: xx, yy ! Those are the coordinates of the points involved
-	real::xi, eta, E, nu
+     real(kind=dp), dimension(8,8) :: k
+	real(kind=dp), dimension(4):: xx, yy ! Those are the coordinates of the points involved
+	real(kind=dp)::xi, eta, E, nu
 
 
 
