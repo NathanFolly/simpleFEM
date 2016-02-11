@@ -23,7 +23,7 @@ real(kind=dp), dimension(4,2) :: localcoordvec=0 ! the vector containing the loc
 real(kind=dp), dimension(2,4) :: u=0
 real(kind=dp), dimension(3,3) :: A=0
 
-real:: E=0, nu=0
+real(kind=dp):: E=0, nu=0
 
 integer :: i, j
 

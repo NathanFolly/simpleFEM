@@ -47,7 +47,7 @@ planestress=planestress*(E)/(1.D0 - nu**2)
 
 ! todo: introduce a function that selects the right stress-strain relation matrix
 
-ss=>planestress
+ss=>planestress	
 	
 
 ! all we need to do now is to call the assembling subroutine
@@ -196,7 +196,8 @@ function k(xi, eta)
  	real(kind=dp), dimension(8,8) ::k
  	real(kind=dp) :: xi, eta
 
- 	k=matmul(transpose(AA(xi,eta)),matmul(planestrain,AA(xi,eta)))*djac(xi,eta)
+ 	k=matmul(transpose(AA(xi,eta)),matmul(ss,AA(xi,eta)))
+
  	
  end function k
 
@@ -207,13 +208,16 @@ subroutine gaussint(dummymatrix)
 	real(kind=dp), dimension(8,8), intent(inout) :: dummymatrix
 	real(kind=dp), dimension(3) :: xi, eta
 	real(kind=dp):: w1, w2, w
-	integer::i,j
-	real(kind=dp), dimension(8,8):: intermedres=0
-
+	integer::i,j,l
+	real(kind=dp), dimension(8,8):: intermedres=0.D1
+	intermedres=0.
+	print *, '-------------------------------------------'
+	print *, intermedres
+	print *,'--------------------------------------------'
 	xi=(/sqrt(3./5.),-sqrt(3./5.),0./)
 	eta=(/sqrt(3./5.),-sqrt(3./5.),0./)
-	intermedres=0
 ! the three point gauss legendre quadrature
+
 	do i =1,3
 		if (i==3) then
 			w1=8./9.
@@ -227,9 +231,12 @@ subroutine gaussint(dummymatrix)
 			else
 				w2=5./9.
 			end if
-			
 			w=w1*w2
-			intermedres=intermedres+w*k(xi(i),eta(j))
+			intermedres=intermedres+w*k(xi(i),eta(j))*djac(xi(i),eta(j))
+			print *,'--'
+			do l=1,8
+				print *, intermedres(l,:)
+			end do
 		end do
 	end do
 	dummymatrix = intermedres

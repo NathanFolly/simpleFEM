@@ -4,7 +4,7 @@
 module mytypes
 	! we want some properties defined. Since we do assume constant global properties, we will later on create only one instance of this type.
 	! IN later programs, we could also attach one property tape to each nodetype and make the properties variables.
-integer, parameter :: dp = selected_real_kind(15,307)
+integer, parameter :: dp = kind(1.D0)
 	type propertytype
 		real(kind=dp) :: E, nu
 	end type propertytype
@@ -47,7 +47,7 @@ integer, parameter :: dp = selected_real_kind(15,307)
 	 	character*40 :: name
 	 	logical :: hasbc=.false.
 	 	integer :: bcnature=0
-	 	real, dimension(2,3) :: bc=0
+	 	real(kind=dp), dimension(2,3) :: bc=0
 	 	type(ndptrarr), allocatable :: node(:)
 	 	type(propertytype) :: properties
 	end type elementtype
@@ -275,21 +275,29 @@ do k = 1, size(element)
 		
 	else if (element(k)%kind == 3) then
 		element(k)%properties=properties
-		!call genESM(element(k),kele)
-!		 print *, '------------------------------------'
+		call genESM(element(k),kele)
+		! print *, '------------------------------------'
 		! do i=1,8
 		! 	print *,kele(i,:)
 		! end do
 		! !this is the old subroutine for element stiffness matrix generation:
-		 call generateesm(kele,element(k),properties)
+		! call generateesm(kele,element(k),properties)
 		! print *,'....'
 		! do i=1,8
 		! 	print *,kele(i,:)
 		! end do
 		petsckele=kele ! because the Matsetvalue subroutine only accepts PETSC-scalars / PETSC-vectors
+		!	print *,' '
+		!do i =1,8
+		!	print *, petsckele(i,:)
+		!end do
+
 		do i=1,element(k)%ndof_local
 			do j=1,element(k)%ndof_local
 			call MatsetValue(Apet, globaldof(element(k),i)-1, globaldof(element(k),j)-1,petsckele(i,j),ADD_VALUES, ierrpet)
+			if ((-1.le.petsckele(i,j)).and.(petsckele(i,j).le.1.)) then
+				print *,petsckele(i,j)
+			end if
 			end do
 		end do
 	end if
@@ -317,11 +325,11 @@ do i =1, size (element)
 			call MatSetValues(Apet,&
 				&1, 2*element(i)%node(j)%p%num-2,&
 			& ndof_global, (/(i, i=0,ndof_global-1)/), &
-			& (/(0, i=1,ndof_global)/), INSERT_VALUES, ierrpet)
+			& (/(0.D0, i=1,ndof_global)/), INSERT_VALUES, ierrpet)
 			call MatSetValues(Apet,&
 				&1, 2*element(i)%node(j)%p%num-1,&
 			& ndof_global, (/(i, i=0,ndof_global-1)/), &
-			& (/(0, i=1,ndof_global)/), INSERT_VALUES, ierrpet)
+			& (/(0.D0, i=1,ndof_global)/), INSERT_VALUES, ierrpet)
 		end do
 		!else if (element(i)%name=='top') then
 		! do j=1,size(element(i)%node)
@@ -526,7 +534,7 @@ subroutine lumpstress(element, forcevector)
 end subroutine lumpstress
 
 subroutine assigndisplacements(displacements, element)
-	real(kind=8), intent(in) :: displacements(:)
+	real(kind=dp), intent(in) :: displacements(:)
 	type(elementtype) :: element(:)
 
 	do i=1,size(element)
