@@ -1,14 +1,16 @@
-subroutine genESM(element, kele)
+subroutine genESM(element, kele, bele)
 
 use mytypes
 implicit none
 
 type(elementtype) :: element
 real(kind=dp), dimension(8,8) :: kele
+real(kind=dp), dimension(8) :: bele ! we have to integrate the nodal forces too
+real(kind=dp), dimension(8) :: forcevec=0 ! The vector of the nodal forces
 real(kind=dp), dimension(4):: x=0, y=0 !the nodal x and y values
 real(kind=dp) :: E, nu ! material properties
 !real, dimension(4,2) :: C=0 ! The matrix that holds the derivatives of the shape functions
-real(kind=dp) :: Jacobian=0 !the jacobain
+!real(kind=dp) :: Jacobian=0 !the jacobain
 
 real(kind=dp), dimension(3,3), target :: planestrain=0, planestress=0 ! the stress-strain relations for the respective cases
 real(kind=dp), dimension(3,3), pointer :: ss(:,:)
@@ -19,6 +21,21 @@ do i=1, size(element%node)
 	x(i)= element%node(i)%p%x
 	y(i)= element%node(i)%p%y
 end do
+
+! filling up the forcevector with the nodal forces
+do i=1, size(element%node)
+	forcevec(2*i-1:2*i) = element%node(i)%p%force
+end do
+
+
+! allocating the 
+! if (allocated(bele).and.(size(bele).ne.element%ndof_local)) then 
+! 	deallocate(bele)
+! 	allocate(bele(element%ndof_local))
+! else if (.not. allocated(bele)) then
+! 	allocate(bele(element%ndof_local))
+! end if
+
 
 
 E=element%properties%E
@@ -44,6 +61,7 @@ planestress(2,2) = 1.D0
 planestress(3,3) = (1.D0-nu)/2.D0
 
 planestress=planestress*(E)/(1.D0 - nu**2)
+!planestress=planestress*1.D0/(1.D0 - nu**2)
 
 ! todo: introduce a function that selects the right stress-strain relation matrix
 
@@ -52,13 +70,31 @@ ss=>planestress
 
 ! all we need to do now is to call the assembling subroutine
 kele=0
+bele=0
 
-call gaussint(kele)
+call gaussintstiffness(kele)
+bele=forcevec
+!call gaussintforce(bele)
 
 
 
 
 contains
+
+function shapefunc(xi,eta) ! the shape functions (N1,N1,N2,N2,N3,N3,N4,N4) needed to integrate the nodal forces 
+	real(kind=dp), dimension (8) :: shapefunc
+	real(kind=dp), intent(in) :: xi, eta
+
+	shapefunc(1) = 1.D0/4.D0*(1.D0-xi)*(1.D0-eta)
+	shapefunc(2) = 1.D0/4.D0*(1.D0-xi)*(1.D0-eta)
+	shapefunc(3) = 1.D0/4.D0*(1.D0-xi)*(1.D0+eta)
+	shapefunc(4) = 1.D0/4.D0*(1.D0-xi)*(1.D0+eta)
+	shapefunc(5) = 1.D0/4.D0*(1.D0+xi)*(1.D0+eta)
+	shapefunc(6) = 1.D0/4.D0*(1.D0+xi)*(1.D0+eta)
+	shapefunc(7) = 1.D0/4.D0*(1.D0+xi)*(1.D0-eta)
+	shapefunc(8) = 1.D0/4.D0*(1.D0+xi)*(1.D0-eta)
+
+end function shapefunc
 
 function C(xi, eta) !The derivatives of the shape functions: C(:,1)=(d N_i)/(d xi) C(:,2)=(dN_i)/(d eta)
 	real(kind=dp), dimension (4,2) :: C
@@ -202,7 +238,7 @@ function k(xi, eta)
  end function k
 
 
-subroutine gaussint(dummymatrix)
+subroutine gaussintstiffness(dummymatrix)
 
 	implicit none
 	real(kind=dp), dimension(8,8), intent(inout) :: dummymatrix
@@ -211,9 +247,6 @@ subroutine gaussint(dummymatrix)
 	integer::i,j,l
 	real(kind=dp), dimension(8,8):: intermedres=0.D1
 	intermedres=0.
-	print *, '-------------------------------------------'
-	print *, intermedres
-	print *,'--------------------------------------------'
 	xi=(/sqrt(3./5.),-sqrt(3./5.),0./)
 	eta=(/sqrt(3./5.),-sqrt(3./5.),0./)
 ! the three point gauss legendre quadrature
@@ -232,15 +265,43 @@ subroutine gaussint(dummymatrix)
 				w2=5./9.
 			end if
 			w=w1*w2
-			intermedres=intermedres+w*k(xi(i),eta(j))*djac(xi(i),eta(j))
-			print *,'--'
-			do l=1,8
-				print *, intermedres(l,:)
-			end do
+			intermedres=intermedres+w*djac(xi(i),eta(j))*k(xi(i),eta(j))
+!			print *, djac(xi(i),eta(j))
 		end do
 	end do
 	dummymatrix = intermedres
-end subroutine gaussint
+end subroutine gaussintstiffness
+
+subroutine gaussintforce(dummyvector)
+	real(kind=dp), dimension(8), intent(inout) :: dummyvector
+	real(kind=dp), dimension(3) :: xi, eta
+	real(kind=dp):: w1, w2, w
+	integer::i,j,l
+	real(kind=dp), dimension(8):: intermedres=0.D1
+	intermedres=0.
+	xi=(/sqrt(3./5.),-sqrt(3./5.),0./)
+	eta=(/sqrt(3./5.),-sqrt(3./5.),0./)
+! the three point gauss legendre quadrature
+
+	do i =1,3
+		if (i==3) then
+			w1=8./9.
+		else
+			w1=5./9.
+		end if
+
+		do j=1,3
+			if (j==3) then
+				w2=8./9.
+			else
+				w2=5./9.
+			end if
+			w=w1*w2
+			intermedres=intermedres+w*djac(xi(i),eta(j))*forcevec*shapefunc(xi(i),eta(j))
+		end do
+	end do
+	dummyvector = intermedres
+end subroutine gaussintforce
 
 
 end subroutine genESM

@@ -26,6 +26,7 @@ integer, parameter :: dp = kind(1.D0)
 		integer :: num
 		real(kind=dp) :: x, y, z
 		type(statetype) :: state
+		real(kind=dp), dimension(2) :: force=0
 	 end type nodetype
 
  	type bcobject
@@ -82,7 +83,7 @@ KSP 			ksppet
 PC 				pcpet
 PetscReal 		normpet, tolpet
 PetscErrorCode 	ierrpet
-PetscInt 		ipet, npet, colpet(3), itspet, i1pet, i2pet, i3pet
+PetscInt 		ipet, npet, colpet(3), itspet, i1pet, i2pet, i3pet, reasonpet
 PetscBool		flgpet
 PetscMPIInt		sizepet, rankpet
 PetscScalar		nonepet, onepet, valuepet(3)
@@ -92,7 +93,7 @@ PetscViewer 	viewer
 PetscReal 		petsckele(8,8), petscdummy ! We need these petsc type variables because 
 				!the MatSetValues subroutine refuses to produce the correct output receiving 
 				!anything else than petsc-variables
-PetscReal 		petforce(8)
+PetscReal 		petscbele(8)
 
 !!!!!!!
 
@@ -101,7 +102,7 @@ type(elementtype), allocatable, target :: element(:) ! essentially the mesh is j
 type(nodetype), allocatable, target :: node(:)
 real(kind=dp), dimension(8,8) :: kele=0 ! This is the dummy element stiffness matrix that
 !gets updated by the subroutine generateesm
-real(kind=dp), allocatable :: fele(:) !element force vector
+real(kind=dp), dimension(8) :: bele !element force vector
 real(kind=dp), allocatable :: displacement(:) ! Vector to store displacements in for postprocessing after the petsc-vector is distroyed
 real(kind=dp), allocatable :: stressvector(:)
 integer :: vecsize !needed for allocating the displacement(:) array
@@ -115,7 +116,7 @@ integer :: ndof_local=8, ndof_nodal, ndof_global !The respective degrees of free
 integer :: quadstart=0, quadend=0, quadcounter=0, nnodes=0
 integer :: i,j,k, ii, jj
 
-integer, dimension(8) :: rowmap, columnmap !vectors mapping the local dof to the global dof
+integer, dimension(8) :: rowmap=0, columnmap=0 !vectors mapping the local dof to the global dof
 
 
 integer :: filestatus
@@ -162,7 +163,6 @@ end interface
 ! this file, they do not seem to work. The problem might be PETSc
 
 call execute_command_line('cp '//meshfile//' '//ppfile, wait=.false.)
-
 
 ! We read in the mesh created by the external program gmsh
 
@@ -261,45 +261,34 @@ call VecSet(b,0,ierrpet)
 do k = 1, size(element)
 	! natural boundary conditions (nodal forces) are written to the force vector
 	if ((element(k)%bcnature==1).or.(element(k)%bcnature==3)) then
-		call lumpstress(element(k), fele)
-		petforce =0.
-		do i=1,size(fele)
-			petforce(i)=fele(i)
-		end do
+		call lumpstress(element(k))
+		! petforce =0.
+		! do i=1,size(fele)
+		! 	petforce(i)=fele(i)
+		! end do
 
-		rowmap =0
-		do i=1,element(k)%ndof_local
-			rowmap(i)=globaldof(element(k),i)-1
-		end do
-		call VecSetValues(b,size(fele),rowmap,petforce,ADD_VALUES,ierrpet)
+		! rowmap =0
+		! do i=1,element(k)%ndof_local
+		! 	rowmap(i)=globaldof(element(k),i)-1
+		! end do
+		! call VecSetValues(b,size(fele),rowmap,petforce,ADD_VALUES,ierrpet)
 		
 	else if (element(k)%kind == 3) then
 		element(k)%properties=properties
-		call genESM(element(k),kele)
-		! print *, '------------------------------------'
-		! do i=1,8
-		! 	print *,kele(i,:)
-		! end do
-		! !this is the old subroutine for element stiffness matrix generation:
-		! call generateesm(kele,element(k),properties)
-		! print *,'....'
-		! do i=1,8
-		! 	print *,kele(i,:)
-		! end do
+		call genESM(element(k),kele,bele)
 		petsckele=kele ! because the Matsetvalue subroutine only accepts PETSC-scalars / PETSC-vectors
-		!	print *,' '
-		!do i =1,8
-		!	print *, petsckele(i,:)
-		!end do
+		petscbele=bele
 
 		do i=1,element(k)%ndof_local
 			do j=1,element(k)%ndof_local
 			call MatsetValue(Apet, globaldof(element(k),i)-1, globaldof(element(k),j)-1,petsckele(i,j),ADD_VALUES, ierrpet)
-			if ((-1.le.petsckele(i,j)).and.(petsckele(i,j).le.1.)) then
-				print *,petsckele(i,j)
-			end if
 			end do
 		end do
+		rowmap=0
+		do i=1,element(k)%ndof_local
+			rowmap(i)=globaldof(element(k),i)-1
+		end do
+		call VecSetValues(b,size(bele),rowmap,petscbele,ADD_VALUES,ierrpet)
 	end if
 	! do i=1,8
 	! 	rowmap(i) = globaldof(element(k),i)
@@ -313,8 +302,8 @@ end do
 
 !first we need to assemble the Matrix because we cannot mixADD_VALUES and INSERT_VALUES without assembling inbetween
 
-call MatAssemblyBegin(Apet, MAT_FINAL_ASSEMBLY, ierrpet)
-call MatAssemblyEnd(Apet, MAT_FINAL_ASSEMBLY, ierrpet)
+call MatAssemblyBegin(Apet, MAT_FLUSH_ASSEMBLY, ierrpet)
+call MatAssemblyEnd(Apet, MAT_FLUSH_ASSEMBLY, ierrpet)
 
 print *,'finished assembley'
 
@@ -367,7 +356,7 @@ call KSPGetPC(ksppet, pcpet, ierrpet)
 call PCSetType(pcpet,PCJACOBI,ierrpet)
 !setting the tolerances for the solver:
 tolpet=1.d-7
-call KSPSetTolerances(ksppet,tolpet, PETSC_DEFAULT_REAL,PETSC_DEFAULT_REAL,PETSC_DEFAULT_INTEGER, ierrpet)
+call KSPSetTolerances(ksppet,tolpet, PETSC_DEFAULT_REAL,1D5,100000, ierrpet)
 ! we can also manipulate the solver options when later calling the program with flags.
 ! For this to be possible, we need to call the following subroutine:
 call KSPSetFromOptions(ksppet,ierrpet)
@@ -381,7 +370,8 @@ call KSPSolve(ksppet,b,u,ierrpet)
 ! viewing the solver info
 
 call KSPView(ksppet, PETSC_VIEWER_STDOUT_WORLD, ierrpet)
-
+call KSPGetConvergedReason(ksppet, reasonpet, ierrpet)
+print *,' Convergence resaon:', reasonpet
 
 !!!! check solution and cleanup
 
@@ -503,33 +493,35 @@ function globaldof(element, localdof) ! returns the global degree of freedom in 
 
 end function globaldof
 
-subroutine lumpstress(element, forcevector)
+subroutine lumpstress(element)
 	! reads the natural BC on an element(stress) and lumps it to the nodes 
-	real(kind=dp), allocatable, intent(inout) :: forcevector(:)
+!	real(kind=dp), allocatable, intent(inout) :: forcevector(:)
 	type(elementtype), intent(in) :: element
 	integer :: i
 !	real :: nodalforcex, nodalforcey, nodalforcez
-	if (allocated(forcevector).and.(size(forcevector).ne.element%ndof_local)) then 
-		deallocate(forcevector)
-		allocate(forcevector(element%ndof_local))
-	else if (.not. allocated(forcevector)) then
-		allocate(forcevector(element%ndof_local))
+	! if (allocated(forcevector).and.(size(forcevector).ne.element%ndof_local)) then 
+	! 	deallocate(forcevector)
+	! 	allocate(forcevector(element%ndof_local))
+	! else if (.not. allocated(forcevector)) then
+	! 	allocate(forcevector(element%ndof_local))
 
-	end if
-	forcevector =0
+	!end if
+	!forcevector =0
 	! stress is uniform over an element -> take the stress, multiply by the appropriate node distance, divide by number of nodes
 	if (element%kind==1) then!those are the two-node line elements
-		if (ndof_nodal==2) then
-			do i = 1, size(element%node)-1
-				forcevector(2*i-1) = forcevector(2*i-1)+element%bc(1,1)*abs(element%node(i)%p%y-element%node(i+1)%p%y)/2.
-				forcevector(2*i) = forcevector(2*i)+element%bc(1,2)*abs(element%node(i)%p%x-element%node(i+1)%p%x)/2.
-				forcevector(2*(i+1)-1) = forcevector(2*(i+1)-1)+element%bc(1,1)*abs(element%node(i)%p%y-element%node(i+1)%p%y)/2.
-				forcevector(2*(i+1)) = forcevector(2*(i+1))+element%bc(1,2)*abs(element%node(i)%p%x-element%node(i+1)%p%x)/2.
-			end do
-		end if
+		print *, 'todo: assign forcevector to nodes'
+		! if (ndof_nodal==2) then
+		! 	do i = 1, size(element%node)-1
+		! 		forcevector(2*i-1) = forcevector(2*i-1)+element%bc(1,1)*abs(element%node(i)%p%y-element%node(i+1)%p%y)/2.
+		! 		forcevector(2*i) = forcevector(2*i)+element%bc(1,2)*abs(element%node(i)%p%x-element%node(i+1)%p%x)/2.
+		! 		forcevector(2*(i+1)-1) = forcevector(2*(i+1)-1)+element%bc(1,1)*abs(element%node(i)%p%y-element%node(i+1)%p%y)/2.
+		! 		forcevector(2*(i+1)) = forcevector(2*(i+1))+element%bc(1,2)*abs(element%node(i)%p%x-element%node(i+1)%p%x)/2.
+		! 	end do
+		! end if
 	else if(element%kind==15) then ! the one-node elements
-		forcevector(1)=element%bc(1,1)
-		forcevector(2)=element%bc(1,2)
+		element%node(1)%p%force(1)=element%bc(1,1)
+		element%node(1)%p%force(2)=element%bc(1,2)
+		!forcevector(2)=element%bc(1,2)
 	end if
 end subroutine lumpstress
 
@@ -541,6 +533,9 @@ subroutine assigndisplacements(displacements, element)
 		do j=1,size(element(i)%node)
 		element(i)%node(j)%p%state%ux=displacements(globaldof(element(i),2*j-1))
 		element(i)%node(j)%p%state%uy=displacements(globaldof(element(i),2*j))
+!		element(i)%node(j)%p%state%ux=displacements(globaldof(element(i),2*j-1))/properties%E
+!		element(i)%node(j)%p%state%uy=displacements(globaldof(element(i),2*j))/properties%E
+
 		end do
 	end do
 end subroutine assigndisplacements
