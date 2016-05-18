@@ -338,9 +338,9 @@ call MatAssemblyBegin(Apet, MAT_FINAL_ASSEMBLY, ierrpet)
 call MatAssemblyEnd(Apet, MAT_FINAL_ASSEMBLY, ierrpet)
 
 ! Let's look at the matrix we assembled :
-!call PetscViewerCreate(PETSC_COMM_WORLD, viewer, ierrpet)
-!call PetscViewerSetType(viewer, PETSCVIEWERASCII, ierrpet)
-!call PetscViewerFileSetName(viewer, 'Kay', ierrpet)
+call PetscViewerCreate(PETSC_COMM_WORLD, viewer, ierrpet)
+call PetscViewerSetType(viewer, PETSCVIEWERASCII, ierrpet)
+call PetscViewerFileSetName(viewer, 'Kay', ierrpet)
 !call MatView(Apet,viewer,ierrpet)
 !call VecView(b,PETSC_VIEWER_STDOUT_WORLD, ierrpet)
 
